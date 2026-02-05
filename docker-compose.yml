@@ -1,0 +1,27 @@
+services:
+  pxe-orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pxe-orchestrator
+    network_mode: host
+    restart: always
+    volumes:
+      - ./data-source:/app/uploads
+      - ./tftpboot:/var/lib/tftpboot
+      - ./frontend:/app/frontend
+      - ./backend:/app/backend
+      - ./scripts/entrypoint.sh:/app/entrypoint.sh
+      - ram-disk:/ram-disk
+    environment:
+      - UPLOAD_DIR=/app/uploads
+      - RAM_DISK=/ram-disk
+      - TFTP_BOOT=/var/lib/tftpboot
+      - TZ=Asia/Jakarta
+
+volumes:
+  ram-disk:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=2G"

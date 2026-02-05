@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UTBK PXE Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        [x-cloak] {
+            display: none !important;
+        }
+
+        :root {
+            --accent: #00f2ff;
+            --accent-glow: rgba(0, 242, 255, 0.3);
+            --bg-body: radial-gradient(circle at top right, #0a192f, #050a14);
+            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --card-shadow: rgba(0, 0, 0, 0.8);
+            --drop-bg: rgba(2, 6, 23, 0.4);
+            --drop-border: #1e293b;
+            --log-bg: rgba(0, 0, 0, 0.4);
+            --log-footer: rgba(2, 6, 23, 0.5);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+        }
+
+        .light-mode {
+            --bg-body: radial-gradient(circle at top right, #f8fafc, #f1f5f9);
+            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
+            --glass-border: rgba(0, 0, 0, 0.05);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --card-shadow: rgba(0, 0, 0, 0.05);
+            --drop-bg: rgba(255, 255, 255, 0.5);
+            --drop-border: #e2e8f0;
+            --log-bg: rgba(255, 255, 255, 0.5);
+            --log-footer: rgba(0, 0, 0, 0.02);
+            --border-subtle: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background: var(--bg-body);
+            font-family: 'Outfit', sans-serif;
+            overflow-x: hidden;
+            color: var(--text-main);
+            min-height: 100vh;
+            transition: all 0.5s ease;
+        }
+
+        .premium-glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 var(--card-shadow);
+            transition: all 0.5s ease;
+        }
+
+        .drop-zone {
+            background: var(--drop-bg);
+            border: 2px dashed var(--drop-border);
+            transition: all 0.5s ease;
+        }
+
+        .log-area {
+            background: var(--log-bg);
+            transition: all 0.5s ease;
+        }
+
+        .log-footer {
+            background: var(--log-footer);
+            transition: all 0.5s ease;
+        }
+
+        .border-subtle {
+            border-color: var(--border-subtle);
+            transition: all 0.5s ease;
+        }
+
+        .text-main {
+            color: var(--text-main);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .progress-bar-custom {
+            height: 100%;
+            background: linear-gradient(90deg, #00f2ff, #00ff88);
+            box-shadow: 0 0 10px var(--accent-glow);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.2);
+            border-radius: 10px;
+        }
+
+        @keyframes pulse-slow {
+
+            0%,
+            100% {
+                opacity: 1;
+                filter: brightness(1.2);
+            }
+
+            50% {
+                opacity: 0.7;
+                filter: brightness(0.8);
+            }
+        }
+
+        .animate-status {
+            animation: pulse-slow 3s infinite;
+        }
+    </style>
+</head>
+
+<body class="pb-20" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
+    <div class="container mx-auto px-6 py-10 max-w-7xl">
+
+        <!-- TOP NAVIGATION -->
+        <nav class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6">
+            <div class="relative">
+                <div class="absolute -top-6 -left-6 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl text-indigo-500">
+                </div>
+                <h1 class="text-3xl font-bold tracking-tighter flex items-center gap-4">
+                    <img src="logo.png" alt="SNBT Logo" class="h-12 w-auto">
+                    UTBK PXE SERVER <span class="text-cyan-400 font-light ml-2 text-2xl">2.0</span>
+                </h1>
+
+                <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-3 px-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Active ISO:</span>
+                        <span class="text-xs font-mono text-cyan-400/80" x-text="files.active_iso || 'OFFLINE'"></span>
+                    </div>
+                    <div class="hidden md:block w-px h-3 bg-slate-800"></div>
+                    <div class="flex items-center gap-2 group cursor-pointer"
+                        @click="editIP = true; tempIP = config.server_ip" x-show="!editIP">
+                        <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Server IP:</span>
+                        <span class="text-xs font-mono text-amber-400/80 underline decoration-dotted underline-offset-4"
+                            x-text="config.server_ip"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-3 w-3 text-slate-600 group-hover:text-amber-400" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                    </div>
+                    <div class="flex items-center gap-2" x-show="editIP" x-cloak>
+                        <input type="text" x-model="tempIP" @keydown.enter="saveIP()"
+                            class="bg-slate-900 border border-amber-500/30 rounded px-2 py-0.5 text-xs font-mono text-amber-300 focus:outline-none focus:border-amber-500 w-32">
+                        <button @click="saveIP()"
+                            class="text-amber-500 hover:text-amber-400 font-bold text-[10px] uppercase">Save</button>
+                        <button @click="editIP = false"
+                            class="text-slate-500 hover:text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <!-- Theme Toggle -->
+                <button @click="toggleTheme()"
+                    class="premium-glass p-3 rounded-2xl border-none hover:scale-110 transition-transform">
+                    <template x-if="darkMode">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707.707M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </template>
+                    <template x-if="!darkMode">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </template>
+                </button>
+
+                <div
+                    class="flex items-center gap-3 premium-glass px-6 py-2.5 rounded-2xl border-l-[3px] border-emerald-500 shadow-emerald-500/10">
+                    <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981] animate-pulse"></div>
+                    <span class="text-emerald-400 font-bold tracking-wider text-xs uppercase">System Engine Live</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- DASHBOARD GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch mb-4">
+
+            <!-- LEFT: CORE STATS (3 COLS) -->
+            <div class="lg:col-span-3 space-y-6 flex flex-col">
+                <div class="premium-glass p-6 rounded-3xl flex-1">
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Total RAM</div>
+                    <div class="text-2xl font-mono font-bold" x-text="formatBytes(stats.ram_used)"></div>
+                    <div class="text-[10px] text-slate-500 mt-1" x-text="'of ' + formatBytes(stats.ram_total)"></div>
+                    <div class="mt-6 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div class="bg-indigo-500 h-full transition-all duration-1000"
+                            :style="'width: ' + stats.ram_percent + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="premium-glass p-6 rounded-3xl flex-1 border-b-2 border-cyan-500/20">
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">RAM Cache usage
+                    </div>
+                    <div class="text-2xl font-mono font-bold text-cyan-400" x-text="formatBytes(stats.tmpfs_used)">
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1"
+                        x-text="stats.tmpfs_percent + '% of ' + formatBytes(stats.tmpfs_total)"></div>
+                    <div class="mt-6 h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <div class="h-full progress-bar-custom" :style="'width: ' + stats.tmpfs_percent + '%'"></div>
+                    </div>
+                </div>
+
+                <div class="premium-glass p-6 rounded-3xl flex-1 border-b-2 border-emerald-500/20">
+                    <div class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">Unique PXE Clients
+                    </div>
+                    <div class="text-2xl font-mono font-bold text-emerald-400" x-text="stats.unique_clients">
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Connected via Network</div>
+                    <div class="mt-6 flex gap-1">
+                        <template x-for="i in Math.min(stats.unique_clients, 10)">
+                            <div class="h-1 w-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                        </template>
+                        <template x-if="stats.unique_clients === 0">
+                            <div class="h-1 w-full bg-slate-800 rounded-full"></div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CENTER: DEPLOYMENT (5 COLS) -->
+            <div class="lg:col-span-5">
+                <div class="premium-glass rounded-[2.5rem] p-8 h-full flex flex-col">
+                    <div class="flex-grow">
+                        <h2 class="text-2xl font-bold">Auto Ingestion</h2>
+                        <p class="text-slate-400 text-sm mt-1">Upload ISO to automatically extract and load to RAM.</p>
+
+                        <div
+                            class="mt-8 group relative drop-zone hover:border-cyan-500/50 rounded-3xl transition-all duration-500 overflow-hidden min-h-[250px] flex items-center justify-center">
+                            <input type="file" @change="uploadISO($event)" accept=".iso"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                :disabled="isUploading">
+
+                            <template x-if="!isUploading">
+                                <div class="text-center space-y-4">
+                                    <div
+                                        class="w-16 h-16 bg-cyan-400/5 text-cyan-400 rounded-2xl flex items-center justify-center mx-auto ring-1 ring-cyan-400/20 group-hover:scale-110 group-hover:ring-cyan-400/40 transition-all duration-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                        </svg>
+                                    </div>
+                                    <p class="text-slate-300 font-semibold">Drop Custom ISO</p>
+                                </div>
+                            </template>
+
+                            <template x-if="isUploading">
+                                <div class="text-center space-y-6 py-10 w-full px-10">
+                                    <div class="relative w-32 h-32 mx-auto">
+                                        <svg class="w-full h-full transform -rotate-90">
+                                            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="6"
+                                                fill="transparent" class="text-slate-800" />
+                                            <circle cx="64" cy="64" r="58" stroke="currentColor" stroke-width="6"
+                                                fill="transparent" :stroke-dasharray="364.4"
+                                                :stroke-dashoffset="364.4 - (364.4 * uploadPercent) / 100"
+                                                class="text-cyan-400 transition-all duration-500"
+                                                stroke-linecap="round" />
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center font-mono text-2xl font-bold"
+                                            x-text="uploadPercent + '%'"></div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <p class="text-xs font-bold text-cyan-400 uppercase tracking-widest animate-pulse"
+                                            x-text="uploadPhase"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="mt-12 pt-10 border-t border-white/5">
+                        <button @click="reset()"
+                            class="group w-full py-4 rounded-2xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/30 text-red-500 transition-all flex items-center justify-center gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg"
+                                class="h-4 w-4 group-hover:rotate-90 transition-transform duration-500" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span class="text-xs font-bold uppercase tracking-widest">Perform Factory Reset</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: COMPONENT STATUS (4 COLS) -->
+            <div class="lg:col-span-4 flex flex-col">
+                <div class="premium-glass rounded-[2rem] p-6 h-full flex flex-col">
+                    <div class="flex-grow">
+                        <h3 class="text-lg font-bold mb-8 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                            Boot Components
+                        </h3>
+
+                        <div class="space-y-4">
+                            <template
+                                x-for="type in [{id:'vmlinuz', label:'Kernel Binary'}, {id:'initrd.img', label:'Initrd Image'}, {id:'rootfs.squashfs', label:'SquashFS Root'}]">
+                                <div class="p-4 rounded-2xl border transition-all duration-500 flex items-center justify-between"
+                                    :class="getComponentClass(type.id)">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 border border-white/10">
+                                            <template x-if="isComponentLoaded(type.id)">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                    class="h-5 w-5 text-emerald-400 animate-status" fill="none"
+                                                    viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </template>
+                                            <template x-if="!isComponentLoaded(type.id)">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-600"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M20 12H4" />
+                                                </svg>
+                                            </template>
+                                        </div>
+                                        <div>
+                                            <div class="text-[9px] text-muted uppercase font-black" x-text="type.label">
+                                            </div>
+                                            <div class="font-mono text-[11px] mt-0.5"
+                                                :class="isComponentLoaded(type.id) ? 'text-main' : 'text-muted'"
+                                                x-text="type.id"></div>
+                                        </div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
+                                        :class="isComponentLoaded(type.id) ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-600'"
+                                        x-text="isComponentLoaded(type.id) ? 'Active' : 'Missing'"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-5 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
+                        <div
+                            class="flex items-center justify-between mb-3 text-[10px] font-bold uppercase tracking-widest text-indigo-400">
+                            <span>PXE Network Status</span>
+                            <span class="font-mono text-slate-500" x-text="new Date().toLocaleTimeString()"></span>
+                        </div>
+                        <div class="space-y-2 text-[11px]">
+                            <div class="flex items-center gap-2"><span
+                                    class="w-1 h-1 rounded-full bg-emerald-500"></span><span class="text-slate-400">TFTP
+                                    [69] - Active</span></div>
+                            <div class="flex items-center gap-2"><span
+                                    class="w-1 h-1 rounded-full bg-emerald-500"></span><span class="text-slate-400">HTTP
+                                    [80] - Active</span></div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full"
+                                    :class="files.deployed.length > 0 ? 'bg-indigo-400' : 'bg-slate-700'"></span>
+                                <span class="text-slate-400"
+                                    x-text="files.deployed.length > 0 ? 'Ready to Deploy' : 'Waiting for Components'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End Grid -->
+
+        <!-- FULL WIDTH TRAFFIC LOG -->
+        <div class="mt-4 w-full">
+            <div class="premium-glass rounded-[2.5rem] overflow-hidden flex flex-col h-[320px]">
+                <div class="px-8 py-5 border-b border-subtle flex justify-between items-center bg-white/[0.01]">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></div>
+                        <h3 class="text-sm font-bold uppercase tracking-widest text-main opacity-80">Live UTBK Traffic
+                            Monitor</h3>
+                    </div>
+                    <div class="flex items-center gap-4 text-[10px] font-mono text-muted uppercase">
+                        <span>Streaming: Access.log</span>
+                        <span class="text-cyan-500/40">●</span>
+                        <span x-text="'Freq: 3s'"></span>
+                    </div>
+                </div>
+                <div
+                    class="p-8 overflow-y-auto flex-grow log-area custom-scrollbar font-mono text-[11px] leading-relaxed text-muted">
+                    <template x-for="log in logs">
+                        <div
+                            class="py-2 border-b border-subtle last:border-0 hover:text-cyan-400 transition-colors flex gap-4">
+                            <span class="text-cyan-500/40 font-bold">>></span>
+                            <span x-text="log" class="break-all"></span>
+                        </div>
+                    </template>
+                    <template x-if="logs.length === 0">
+                        <div class="flex flex-col items-center justify-center h-full opacity-20 italic text-main">
+                            <span class="text-xs">No traffic detected. Waiting for PXE clients...</span>
+                        </div>
+                    </template>
+                </div>
+                <div class="px-8 py-3 log-footer border-t border-subtle text-center">
+                    <span class="text-[9px] text-muted uppercase font-black tracking-[0.3em]">Synched with Server
+                        Node</span>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- Close pxeManager Container -->
+
+    <script>
+        function pxeManager() {
+            return {
+                darkMode: localStorage.getItem('theme') !== 'light',
+                stats: { ram_used: 0, ram_total: 1, ram_percent: 0, tmpfs_used: 0, tmpfs_total: 1, tmpfs_percent: 0, unique_clients: 0 },
+                files: { uploaded: [], deployed: [], active_iso: 'None' },
+                isUploading: false,
+                isWorking: false,
+                uploadPercent: 0,
+                uploadPhase: 'Standby',
+                logs: [],
+                config: { server_ip: '10.8.0.70' },
+                editIP: false,
+                tempIP: '',
+
+                init() {
+                    this.fetchStats();
+                    this.fetchFiles();
+                    this.fetchConfig();
+                    this.fetchLogs();
+                    setInterval(() => this.fetchStats(), 2000);
+                    setInterval(() => this.fetchFiles(), 5000);
+                    setInterval(() => this.fetchLogs(), 3000);
+                },
+
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+                },
+
+                async fetchConfig() {
+                    try {
+                        const res = await fetch('/api/config');
+                        this.config = await res.json();
+                        this.tempIP = this.config.server_ip;
+                    } catch (e) { console.error('Config error:', e); }
+                },
+
+                async saveIP() {
+                    try {
+                        const res = await fetch('/api/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ server_ip: this.tempIP })
+                        });
+                        if (res.ok) {
+                            this.config.server_ip = this.tempIP;
+                            this.editIP = false;
+                        }
+                    } catch (e) { alert('Failed to save IP'); }
+                },
+
+                async fetchStats() {
+                    try {
+                        const res = await fetch('/api/stats');
+                        this.stats = await res.json();
+                    } catch (e) { console.error('Stats error:', e); }
+                },
+
+                async fetchFiles() {
+                    try {
+                        const res = await fetch('/api/files');
+                        this.files = await res.json();
+                    } catch (e) { console.error('Files error:', e); }
+                },
+
+                async fetchLogs() {
+                    try {
+                        const res = await fetch('/api/logs');
+                        const data = await res.json();
+                        this.logs = data.logs;
+                    } catch (e) { console.error('Log error:', e); }
+                },
+
+                isComponentLoaded(name) { return this.files.deployed.includes(name); },
+
+                getComponentClass(name) {
+                    if (this.isComponentLoaded(name)) return 'bg-emerald-500/5 border-emerald-500/20';
+                    return 'bg-slate-900/40 border-slate-800/50 grayscale opacity-40';
+                },
+
+                uploadISO(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    // Client-side validation
+                    if (!file.name.toLowerCase().endsWith('.iso')) {
+                        alert('Security Alert: Only .iso files are accepted for automated ingestion.');
+                        event.target.value = ''; // Reset input
+                        return;
+                    }
+
+                    this.isUploading = true;
+                    this.uploadPercent = 0;
+                    this.uploadPhase = 'Transmitting ISO...';
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const xhr = new XMLHttpRequest();
+                    xhr.upload.onprogress = (e) => {
+                        if (e.lengthComputable) {
+                            this.uploadPercent = Math.round((e.loaded / e.total) * 100);
+                            if (this.uploadPercent === 100) this.uploadPhase = 'Extracting & Loading...';
+                        }
+                    };
+                    xhr.onload = () => {
+                        this.isUploading = false;
+                        if (xhr.status === 200) { setTimeout(() => this.fetchFiles(), 500); }
+                        else { alert('Error: ' + xhr.responseText); }
+                    };
+                    xhr.onerror = () => { this.isUploading = false; alert('Connection Error'); };
+                    xhr.open('POST', '/api/upload/iso');
+                    xhr.send(formData);
+                },
+
+                async reset() {
+                    if (!confirm('TOTAL SYSTEM WIPE?')) return;
+                    this.isWorking = true;
+                    try {
+                        await fetch('/api/reset', { method: 'POST' });
+                        this.files.active_iso = 'None';
+                        this.fetchFiles();
+                    } catch (e) { alert('Reset failed'); }
+                    finally { this.isWorking = false; }
+                },
+
+                formatBytes(bytes) {
+                    if (bytes === 0) return '0 B';
+                    const k = 1024;
+                    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(k));
+                    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                },
+                formatSpeed(bytesPerSec) { return this.formatBytes(bytesPerSec) + '/s'; }
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+iso_extract/
+*.iso
+*.squashfs
+vmlinuz
+initrd.img

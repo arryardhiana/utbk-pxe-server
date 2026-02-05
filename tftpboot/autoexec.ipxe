@@ -1,0 +1,9 @@
+#!ipxe
+
+dhcp || reboot
+
+set server_ip 10.8.0.70
+
+kernel http://${server_ip}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${server_ip}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0
+initrd http://${server_ip}/pxe/initrd.img
+boot
