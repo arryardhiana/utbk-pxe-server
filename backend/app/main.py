@@ -189,6 +189,13 @@ async def upload_file(file_type: str, file: UploadFile = File(...)):
     return {"filename": file.filename, "type": file_type}
 
 async def handle_iso_upload(file: UploadFile):
+    # VALIDATION: Ensure no existing ISO is active
+    if get_iso_name() != "None" or any(os.path.exists(os.path.join(RAM_DISK, f)) for f in ["vmlinuz", "initrd.img", "rootfs.squashfs"]):
+        raise HTTPException(
+            status_code=403, 
+            detail="System Lock: An ISO is already active. Please perform a 'Factory Reset' to clear the system before uploading a new one."
+        )
+
     # VALIDATION: Ensure file is an ISO
     if not file.filename.lower().endswith('.iso'):
         raise HTTPException(status_code=400, detail="Forbidden format: Only .iso files are allowed for orchestration.")

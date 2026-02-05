@@ -519,6 +519,13 @@
                         return;
                     }
 
+                    // System State Validation: Lock upload if ISO is already active
+                    if (this.files.active_iso !== 'None' || this.files.deployed.length > 0) {
+                        alert('System Lock: Sebuah ISO sedang aktif dan termuat di RAM. Silakan lakukan "Factory Reset" terlebih dahulu untuk membersihkan sistem sebelum mengunggah ISO baru.');
+                        event.target.value = ''; // Reset input
+                        return;
+                    }
+
                     this.isUploading = true;
                     this.uploadPercent = 0;
                     this.uploadPhase = 'Transmitting ISO...';
