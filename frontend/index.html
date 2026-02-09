@@ -152,27 +152,6 @@
                         <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Active ISO:</span>
                         <span class="text-xs font-mono text-cyan-400/80" x-text="files.active_iso || 'OFFLINE'"></span>
                     </div>
-                    <div class="hidden md:block w-px h-3 bg-slate-800"></div>
-                    <div class="flex items-center gap-2 group cursor-pointer"
-                        @click="editIP = true; tempIP = config.server_ip" x-show="!editIP">
-                        <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Server IP:</span>
-                        <span class="text-xs font-mono text-amber-400/80 underline decoration-dotted underline-offset-4"
-                            x-text="config.server_ip"></span>
-                        <svg xmlns="http://www.w3.org/2000/svg"
-                            class="h-3 w-3 text-slate-600 group-hover:text-amber-400" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                        </svg>
-                    </div>
-                    <div class="flex items-center gap-2" x-show="editIP" x-cloak>
-                        <input type="text" x-model="tempIP" @keydown.enter="saveIP()"
-                            class="bg-slate-900 border border-amber-500/30 rounded px-2 py-0.5 text-xs font-mono text-amber-300 focus:outline-none focus:border-amber-500 w-32">
-                        <button @click="saveIP()"
-                            class="text-amber-500 hover:text-amber-400 font-bold text-[10px] uppercase">Save</button>
-                        <button @click="editIP = false"
-                            class="text-slate-500 hover:text-slate-400 font-bold text-[10px] uppercase">Cancel</button>
-                    </div>
                 </div>
             </div>
 
@@ -384,6 +363,37 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- NEW: Server Configuration (IP Selection) -->
+                    <div class="mt-6 p-5 rounded-3xl bg-amber-500/5 border border-amber-500/10">
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-4">Server
+                            Configuration</div>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-[9px] text-muted uppercase font-black block mb-2">Network
+                                    Interface</label>
+                                <div class="relative z-20">
+                                    <select x-model="tempIP" @change="saveIP()"
+                                        class="w-full bg-slate-900/60 border border-slate-700/50 hover:border-amber-500/30 rounded-xl px-4 py-2.5 text-xs font-mono text-main focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer relative z-30 transition-all">
+                                        <template x-for="net in networks" :key="net.ip">
+                                            <option :value="net.ip" x-text="net.iface + ' (' + net.ip + ')'"
+                                                class="bg-slate-900 text-white"></option>
+                                        </template>
+                                    </select>
+                                    <div
+                                        class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <p class="text-[9px] text-muted mt-2">Pilih interface yang terhubung ke jaringan PXE.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div> <!-- End Grid -->
@@ -433,6 +443,7 @@
                 darkMode: localStorage.getItem('theme') !== 'light',
                 stats: { ram_used: 0, ram_total: 1, ram_percent: 0, tmpfs_used: 0, tmpfs_total: 1, tmpfs_percent: 0, unique_clients: 0 },
                 files: { uploaded: [], deployed: [], active_iso: 'None' },
+                networks: [],
                 isUploading: false,
                 isWorking: false,
                 uploadPercent: 0,
@@ -446,10 +457,12 @@
                     this.fetchStats();
                     this.fetchFiles();
                     this.fetchConfig();
+                    this.fetchNetworks();
                     this.fetchLogs();
                     setInterval(() => this.fetchStats(), 2000);
                     setInterval(() => this.fetchFiles(), 5000);
                     setInterval(() => this.fetchLogs(), 3000);
+                    setInterval(() => this.fetchNetworks(), 10000);
                 },
 
                 toggleTheme() {
@@ -461,8 +474,15 @@
                     try {
                         const res = await fetch('/api/config');
                         this.config = await res.json();
-                        this.tempIP = this.config.server_ip;
+                        if (!this.tempIP) this.tempIP = this.config.server_ip;
                     } catch (e) { console.error('Config error:', e); }
+                },
+
+                async fetchNetworks() {
+                    try {
+                        const res = await fetch('/api/networks');
+                        this.networks = await res.json();
+                    } catch (e) { console.error('Networks error:', e); }
                 },
 
                 async saveIP() {

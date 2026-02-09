@@ -1,6 +1,7 @@
 import os
 import shutil
 import psutil
+import socket
 import time
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -31,9 +32,9 @@ def detect_host_ip():
         for iface, addrs in interfaces.items():
             if re.match(pattern, iface):
                 for addr in addrs:
-                    if addr.family == psutil.AF_LINK or addr.address == '127.0.0.1':
-                        continue
-                    if '.' in addr.address: # Simple IPv4 check
+                    if addr.family == socket.AF_INET: # Only IPv4
+                        if addr.address == '127.0.0.1':
+                            continue
                         return addr.address
     
     # Fallback: any interface that isn't lo, docker, or bridge
@@ -41,7 +42,7 @@ def detect_host_ip():
         if iface == 'lo' or iface.startswith('docker') or iface.startswith('br-') or iface.startswith('veth'):
             continue
         for addr in addrs:
-            if '.' in addr.address and addr.address != '127.0.0.1':
+            if addr.family == socket.AF_INET and addr.address != '127.0.0.1':
                 return addr.address
                 
     return "10.8.0.70" # Hard fallback if nothing found
@@ -399,6 +400,25 @@ async def get_logs():
         return {"logs": filtered[:50]}
     except Exception as e:
         return {"logs": [f"Error reading logs: {str(e)}"]}
+
+@app.get("/api/networks")
+async def get_networks():
+    """Returns a list of available network interfaces and their IPs."""
+    interfaces = psutil.net_if_addrs()
+    networks = []
+    
+    for iface, addrs in interfaces.items():
+        # Filter out noisy virtual interfaces
+        if iface == 'lo' or iface.startswith('docker') or iface.startswith('br-') or iface.startswith('veth'):
+            continue
+            
+        for addr in addrs:
+            if addr.family == socket.AF_INET: # Only IPv4
+                networks.append({
+                    "iface": iface,
+                    "ip": addr.address
+                })
+    return networks
 
 @app.get("/api/config")
 async def read_config():
