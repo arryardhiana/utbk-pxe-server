@@ -139,7 +139,7 @@
 </head>
 
 <body class="pb-20" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
-    <div class="container mx-auto px-6 py-10 max-w-7xl">
+    <div class="container mx-auto px-6 py-10 max-w-7xl" x-show="isAuthenticated" x-cloak>
 
         <!-- TOP NAVIGATION -->
         <nav class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6">
@@ -441,6 +441,51 @@
 
     </div> <!-- Close pxeManager Container -->
 
+    <!-- PREMIUM LOGIN OVERLAY -->
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#050a14]/80 backdrop-blur-md"
+        x-show="!isAuthenticated" x-transition:enter="transition ease-out duration-500"
+        x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-cloak>
+        <div
+            class="premium-glass w-full max-w-md p-10 rounded-[3rem] border-white/10 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl"></div>
+
+            <div class="relative text-center mb-10">
+                <img src="logo.png" alt="Logo" class="h-16 w-auto mx-auto mb-6 scale-110">
+                <h2 class="text-2xl font-bold tracking-tight text-main mb-2">RESTRICTED ACCESS</h2>
+                <p class="text-[10px] text-muted uppercase tracking-[0.2em] font-medium">Enter Authorization Password
+                </p>
+            </div>
+
+            <form @submit.prevent="login()" class="space-y-6">
+                <div class="relative group">
+                    <input type="password" x-model="loginPass" placeholder="••••••••"
+                        class="w-full bg-slate-900/60 border border-slate-800 rounded-2xl px-6 py-4 text-center text-lg font-mono tracking-widest text-white focus:outline-none focus:border-cyan-500/50 focus:ring-4 focus:ring-cyan-500/5 transition-all group-hover:border-slate-700">
+                </div>
+
+                <button type="submit" :disabled="isWorking"
+                    class="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl text-[11px] uppercase tracking-widest shadow-lg shadow-indigo-500/10 transition-all active:scale-95 disabled:opacity-50">
+                    <span x-show="!isWorking">Authenticate System</span>
+                    <span x-show="isWorking">Checking...</span>
+                </button>
+
+                <p class="text-[9px] text-center text-red-400 font-medium tracking-wide uppercase mt-4"
+                    x-show="authError" x-text="authError" x-transition></p>
+            </form>
+
+            <div class="mt-10 pt-6 border-t border-white/5 flex justify-center gap-6">
+                <div class="flex items-center gap-2">
+                    <div class="w-1 h-1 rounded-full bg-cyan-500"></div>
+                    <span class="text-[9px] text-muted uppercase">AES-256 Validated</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="w-1 h-1 rounded-full bg-indigo-500"></div>
+                    <span class="text-[9px] text-muted uppercase">Multi-Interface Ready</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function pxeManager() {
             return {
@@ -456,17 +501,82 @@
                 config: { server_ip: '10.8.0.70' },
                 editIP: false,
                 tempIP: '',
+                isAuthenticated: false,
+                authToken: localStorage.getItem('auth_token') || '',
+                loginPass: '',
+                authError: '',
 
-                init() {
+                async apiFetch(url, options = {}) {
+                    const headers = {
+                        ...options.headers,
+                        'X-Dashboard-Token': this.authToken
+                    };
+                    const res = await fetch(url, { ...options, headers });
+                    if (res.status === 401) {
+                        this.logout();
+                        throw new Error('Unauthorized');
+                    }
+                    return res;
+                },
+
+                async init() {
+                    if (this.authToken) {
+                        await this.validateAuth();
+                    }
+                    if (this.isAuthenticated) {
+                        this.startPolling();
+                    }
+                },
+
+                async validateAuth() {
+                    try {
+                        const res = await fetch('/api/verify-auth', {
+                            headers: { 'X-Dashboard-Token': this.authToken }
+                        });
+                        if (res.ok) {
+                            this.isAuthenticated = true;
+                        } else {
+                            this.logout();
+                        }
+                    } catch (e) { this.logout(); }
+                },
+
+                async login() {
+                    this.isWorking = true;
+                    this.authError = '';
+                    try {
+                        const res = await fetch('/api/verify-auth', {
+                            headers: { 'X-Dashboard-Token': this.loginPass }
+                        });
+                        if (res.ok) {
+                            this.authToken = this.loginPass;
+                            localStorage.setItem('auth_token', this.authToken);
+                            this.isAuthenticated = true;
+                            this.loginPass = '';
+                            this.startPolling();
+                        } else {
+                            this.authError = 'Invalid authorization password';
+                        }
+                    } catch (e) { this.authError = 'Connection failed'; }
+                    this.isWorking = false;
+                },
+
+                logout() {
+                    this.isAuthenticated = false;
+                    this.authToken = '';
+                    localStorage.removeItem('auth_token');
+                },
+
+                startPolling() {
                     this.fetchStats();
                     this.fetchFiles();
                     this.fetchConfig();
                     this.fetchNetworks();
                     this.fetchLogs();
-                    setInterval(() => this.fetchStats(), 2000);
-                    setInterval(() => this.fetchFiles(), 5000);
-                    setInterval(() => this.fetchLogs(), 3000);
-                    setInterval(() => this.fetchNetworks(), 10000);
+                    setInterval(() => { if (this.isAuthenticated) this.fetchStats() }, 2000);
+                    setInterval(() => { if (this.isAuthenticated) this.fetchFiles() }, 5000);
+                    setInterval(() => { if (this.isAuthenticated) this.fetchLogs() }, 3000);
+                    setInterval(() => { if (this.isAuthenticated) this.fetchNetworks() }, 10000);
                 },
 
                 toggleTheme() {
@@ -474,9 +584,23 @@
                     localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
                 },
 
+                async fetchStats() {
+                    try {
+                        const res = await this.apiFetch('/api/stats');
+                        this.stats = await res.json();
+                    } catch (e) { }
+                },
+
+                async fetchFiles() {
+                    try {
+                        const res = await this.apiFetch('/api/files');
+                        this.files = await res.json();
+                    } catch (e) { }
+                },
+
                 async fetchConfig() {
                     try {
-                        const res = await fetch('/api/config');
+                        const res = await this.apiFetch('/api/config');
                         this.config = await res.json();
                         if (!this.tempIP) this.tempIP = this.config.server_ip;
                     } catch (e) { console.error('Config error:', e); }
@@ -484,14 +608,22 @@
 
                 async fetchNetworks() {
                     try {
-                        const res = await fetch('/api/networks');
+                        const res = await this.apiFetch('/api/networks');
                         this.networks = await res.json();
                     } catch (e) { console.error('Networks error:', e); }
                 },
 
+                async fetchLogs() {
+                    try {
+                        const res = await this.apiFetch('/api/logs');
+                        const data = await res.json();
+                        this.logs = data.logs;
+                    } catch (e) { console.error('Log error:', e); }
+                },
+
                 async saveIP() {
                     try {
-                        const res = await fetch('/api/config', {
+                        const res = await this.apiFetch('/api/config', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ server_ip: this.tempIP })
@@ -503,26 +635,17 @@
                     } catch (e) { alert('Failed to save IP'); }
                 },
 
-                async fetchStats() {
+                async factoryReset() {
+                    if (!confirm('WARNING: Ini akan menghapus SEMUA ISO dan file di RAM. Lanjut?')) return;
+                    this.isWorking = true;
                     try {
-                        const res = await fetch('/api/stats');
-                        this.stats = await res.json();
-                    } catch (e) { console.error('Stats error:', e); }
-                },
-
-                async fetchFiles() {
-                    try {
-                        const res = await fetch('/api/files');
-                        this.files = await res.json();
-                    } catch (e) { console.error('Files error:', e); }
-                },
-
-                async fetchLogs() {
-                    try {
-                        const res = await fetch('/api/logs');
-                        const data = await res.json();
-                        this.logs = data.logs;
-                    } catch (e) { console.error('Log error:', e); }
+                        const res = await this.apiFetch('/api/reset', { method: 'POST' });
+                        if (res.ok) {
+                            alert('System wiped successfully');
+                            this.fetchFiles();
+                        }
+                    } catch (e) { }
+                    this.isWorking = false;
                 },
 
                 isComponentLoaded(name) { return this.files.deployed.includes(name); },
@@ -536,17 +659,15 @@
                     const file = event.target.files[0];
                     if (!file) return;
 
-                    // Client-side validation
                     if (!file.name.toLowerCase().endsWith('.iso')) {
                         alert('Security Alert: Only .iso files are accepted for automated ingestion.');
-                        event.target.value = ''; // Reset input
+                        event.target.value = '';
                         return;
                     }
 
-                    // System State Validation: Lock upload if ISO is already active
                     if (this.files.active_iso !== 'None' || this.files.deployed.length > 0) {
-                        alert('System Lock: Sebuah ISO sedang aktif dan termuat di RAM. Silakan lakukan "Factory Reset" terlebih dahulu untuk membersihkan sistem sebelum mengunggah ISO baru.');
-                        event.target.value = ''; // Reset input
+                        alert('System Lock: Sebuah ISO sedang aktif dan termuat di RAM. Silakan lakukan "Factory Reset" terlebih dahulu.');
+                        event.target.value = '';
                         return;
                     }
 
@@ -565,22 +686,13 @@
                     xhr.onload = () => {
                         this.isUploading = false;
                         if (xhr.status === 200) { setTimeout(() => this.fetchFiles(), 500); }
+                        else if (xhr.status === 401) { this.logout(); alert('Session expired. Please login again.'); }
                         else { alert('Error: ' + xhr.responseText); }
                     };
                     xhr.onerror = () => { this.isUploading = false; alert('Connection Error'); };
                     xhr.open('POST', '/api/upload/iso');
+                    xhr.setRequestHeader('X-Dashboard-Token', this.authToken);
                     xhr.send(formData);
-                },
-
-                async reset() {
-                    if (!confirm('TOTAL SYSTEM WIPE?')) return;
-                    this.isWorking = true;
-                    try {
-                        await fetch('/api/reset', { method: 'POST' });
-                        this.files.active_iso = 'None';
-                        this.fetchFiles();
-                    } catch (e) { alert('Reset failed'); }
-                    finally { this.isWorking = false; }
                 },
 
                 formatBytes(bytes) {
@@ -589,8 +701,7 @@
                     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
                     const i = Math.floor(Math.log(bytes) / Math.log(k));
                     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                },
-                formatSpeed(bytesPerSec) { return this.formatBytes(bytesPerSec) + '/s'; }
+                }
             }
         }
     </script>

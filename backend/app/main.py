@@ -3,7 +3,7 @@ import shutil
 import psutil
 import socket
 import time
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -20,6 +20,12 @@ RAM_DISK = os.getenv("RAM_DISK", "/ram-disk")
 TFTP_BOOT = os.getenv("TFTP_BOOT", "/var/lib/tftpboot")
 METADATA_FILE = os.path.join(UPLOAD_DIR, "iso_metadata.json")
 CONFIG_FILE = os.path.join(UPLOAD_DIR, "config.json")
+APP_PASSWORD = os.getenv("APP_PASSWORD", "admin123")
+
+async def verify_token(x_dashboard_token: str = Header(None)):
+    if not x_dashboard_token or x_dashboard_token != APP_PASSWORD:
+        raise HTTPException(status_code=401, detail="Unauthorized: Invalid dashboard token")
+    return x_dashboard_token
 
 def detect_host_ip():
     """Detects the primary host IP, excluding lo and docker interfaces."""
@@ -121,7 +127,7 @@ class SystemStats(BaseModel):
     unique_clients: int
 
 @app.get("/api/stats", response_model=SystemStats)
-async def get_stats():
+async def get_stats(token: str = Depends(verify_token)):
     # System RAM
     mem = psutil.virtual_memory()
     
@@ -170,7 +176,7 @@ async def get_stats():
     }
 
 @app.post("/api/upload/{file_type}")
-async def upload_file(file_type: str, file: UploadFile = File(...)):
+async def upload_file(file_type: str, file: UploadFile = File(...), token: str = Depends(verify_token)):
     if file_type not in ["vmlinuz", "initrd", "rootfs", "iso"]:
         raise HTTPException(status_code=400, detail="Invalid file type")
     
@@ -297,7 +303,7 @@ async def handle_iso_upload(file: UploadFile):
         raise HTTPException(status_code=500, detail=f"ISO Extraction failed: {str(e)}")
 
 @app.post("/api/deploy")
-async def deploy_to_ram():
+async def deploy_to_ram(token: str = Depends(verify_token)):
     try:
         # Expected names in UPLOAD_DIR (source)
         # Expected names in RAM_DISK (destination)
@@ -320,7 +326,7 @@ async def deploy_to_ram():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/unload")
-async def unload_from_ram():
+async def unload_from_ram(token: str = Depends(verify_token)):
     try:
         files = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
         for f in files:
@@ -332,7 +338,7 @@ async def unload_from_ram():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/reset")
-async def reset_storage():
+async def factory_reset(token: str = Depends(verify_token)):
     try:
         # 1. Thoroughly clear UPLOAD_DIR (data-source)
         for item in os.listdir(UPLOAD_DIR):
@@ -368,7 +374,7 @@ async def reset_storage():
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
 
 @app.get("/api/files")
-async def list_files():
+async def list_files(token: str = Depends(verify_token)):
     uploaded = os.listdir(UPLOAD_DIR)
     deployed = os.listdir(RAM_DISK)
     return {
@@ -378,7 +384,7 @@ async def list_files():
     }
 
 @app.get("/api/logs")
-async def get_logs():
+async def get_logs(token: str = Depends(verify_token)):
     try:
         log_file = "/var/log/nginx/access.log"
         if not os.path.exists(log_file):
@@ -402,7 +408,7 @@ async def get_logs():
         return {"logs": [f"Error reading logs: {str(e)}"]}
 
 @app.get("/api/networks")
-async def get_networks():
+async def get_networks(token: str = Depends(verify_token)):
     """Returns a list of available network interfaces and their IPs."""
     interfaces = psutil.net_if_addrs()
     networks = []
@@ -421,15 +427,19 @@ async def get_networks():
     return networks
 
 @app.get("/api/config")
-async def read_config():
+async def read_config(token: str = Depends(verify_token)):
     return get_config()
 
 @app.post("/api/config")
-async def update_config(config: dict):
+async def update_config(config: dict, token: str = Depends(verify_token)):
     if "server_ip" not in config:
         raise HTTPException(status_code=400, detail="server_ip is required")
     save_config(config)
     return {"status": "success", "message": "Configuration updated and iPXE scripts refreshed"}
+
+@app.get("/api/verify-auth")
+async def verify_auth(token: str = Depends(verify_token)):
+    return {"status": "success", "message": "Authenticated"}
 
 # Serve Frontend
 app.mount("/", StaticFiles(directory="/app/frontend", html=True), name="frontend")

@@ -18,6 +18,7 @@ services:
       - RAM_DISK=/ram-disk
       - TFTP_BOOT=/var/lib/tftpboot
       - TZ=Asia/Jakarta
+      - APP_PASSWORD=admin123
 
 volumes:
   ram-disk:
