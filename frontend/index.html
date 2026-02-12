@@ -439,7 +439,16 @@
             </div>
         </div>
 
-    </div> <!-- Close pxeManager Container -->
+        <footer class="mt-20 pt-10 border-t border-subtle flex flex-col items-center gap-4">
+            <div class="flex items-center gap-3">
+                <img src="logo.png" alt="Logo" class="h-6 w-auto grayscale opacity-50">
+                <span class="text-[10px] text-muted font-medium tracking-[0.3em] uppercase">UTBK PXE Server</span>
+            </div>
+            <p class="text-[10px] text-muted/40 uppercase tracking-widest">Copyright &copy; 2026 Arry A - Universitas
+                Padjadjaran</p>
+        </footer>
+
+    </div>
 
     <!-- PREMIUM LOGIN OVERLAY -->
     <div class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-[#050a14]/80 backdrop-blur-md"
@@ -473,15 +482,10 @@
                     x-show="authError" x-text="authError" x-transition></p>
             </form>
 
-            <div class="mt-10 pt-6 border-t border-white/5 flex justify-center gap-6">
-                <div class="flex items-center gap-2">
-                    <div class="w-1 h-1 rounded-full bg-cyan-500"></div>
-                    <span class="text-[9px] text-muted uppercase">AES-256 Validated</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-1 h-1 rounded-full bg-indigo-500"></div>
-                    <span class="text-[9px] text-muted uppercase">Multi-Interface Ready</span>
-                </div>
+            <div class="mt-10 pt-6 border-t border-white/5 flex flex-col items-center gap-2">
+                <p class="text-[9px] text-muted uppercase tracking-widest font-semibold">PXE Orchestrator v2.0</p>
+                <p class="text-[9px] text-muted/60 uppercase tracking-tighter">Developed by Arry A - Universitas
+                    Padjadjaran</p>
             </div>
         </div>
     </div>

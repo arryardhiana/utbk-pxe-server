@@ -1,2 +1,26 @@
-implementation_plan.md
+# Local storage and configurations
 data-source/
+tftpboot/*.ipxe
+tftpboot/*.efi
+tftpboot/*.img
+
+# Deployment artifacts
+implementation_plan.md
+walkthrough.md
+task.md
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# Docker logs
+*.log

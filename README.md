@@ -44,5 +44,9 @@ set [find address=192.168.88.0/24] \
 
 ---
 
-## 📄 Lisensi
-Sistem ini dikembangkan untuk kebutuhan operasional UTBK. Silakan digunakan secara bertanggung jawab.
+## 📄 Lisensi & Hak Cipta
+Sistem ini dikembangkan oleh **Arry A - Universitas Padjadjaran**.  
+Copyright © 2026. All rights reserved.
+
+---
+*Terima kasih telah menggunakan UTBK PXE Server.*

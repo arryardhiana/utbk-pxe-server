@@ -1,3 +1,9 @@
+"""
+UTBK PXE Server Orchestrator v2.0
+Developed by Arry A - Universitas Padjadjaran
+Copyright (c) 2026. All rights reserved.
+"""
+
 import os
 import shutil
 import psutil
@@ -55,11 +61,34 @@ def detect_host_ip():
 
 def get_config():
     import json
+    config = None
     if os.path.exists(CONFIG_FILE):
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                config = json.load(f)
+        except:
+            pass
     
-    # NEW: Automatically detect IP on first run
+    # Smart Validation: Check if saved IP still belongs to this host
+    if config and "server_ip" in config:
+        saved_ip = config["server_ip"]
+        interfaces = psutil.net_if_addrs()
+        all_host_ips = []
+        for iface_addrs in interfaces.values():
+            for addr in iface_addrs:
+                if addr.family == socket.AF_INET:
+                    all_host_ips.append(addr.address)
+        
+        if saved_ip not in all_host_ips and saved_ip != "10.8.0.70":
+            print(f"Portability Alert: Saved IP {saved_ip} not found on this host. Re-detecting...")
+            detected_ip = detect_host_ip()
+            if detected_ip != saved_ip:
+                config["server_ip"] = detected_ip
+                save_config(config)
+                print(f"Network Adjusted: New IP {detected_ip} applied.")
+        return config
+
+    # Fallback to detection if no config or invalid
     detected_ip = detect_host_ip()
     new_config = {"server_ip": detected_ip}
     save_config(new_config)
@@ -134,7 +163,7 @@ async def get_stats(token: str = Depends(verify_token)):
     # tmpfs usage
     tmpfs = psutil.disk_usage(RAM_DISK)
     
-    # Count unique IPs from Nginx access log (Only actual PXE traffic within last 15s)
+    # PXE traffic counting
     unique_clients = 0
     try:
         log_file = "/var/log/nginx/access.log"
@@ -210,7 +239,7 @@ async def handle_iso_upload(file: UploadFile):
     iso_path = os.path.join(UPLOAD_DIR, "uploaded.iso")
     extract_path = os.path.join(UPLOAD_DIR, "iso_extract")
     
-    # NEW: Securely wipe existing state before starting new ISO processing
+    # System wipe before ISO processing
     components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
     for f in components:
         try:

@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     p7zip \
     tzdata
 
-# Download iPXE UEFI binary (snponly variant for faster SNP drivers)
+# iPXE UEFI setup
 RUN mkdir -p /tmp/ipxe && \
     curl -o /tmp/ipxe/snponly.efi https://boot.ipxe.org/x86_64-efi/snponly.efi
 
@@ -33,7 +33,7 @@ COPY scripts/nginx.conf /etc/nginx/nginx.conf
 # Set workdir
 WORKDIR /app
 
-# Expose ports (Host mode will handle this, but good for documentation)
+# Ports
 EXPOSE 80 69/udp 8000
 
 RUN chmod +x /app/entrypoint.sh
