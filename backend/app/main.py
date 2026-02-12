@@ -157,13 +157,8 @@ class SystemStats(BaseModel):
 
 @app.get("/api/stats", response_model=SystemStats)
 async def get_stats(token: str = Depends(verify_token)):
-    # System RAM
     mem = psutil.virtual_memory()
-    
-    # tmpfs usage
     tmpfs = psutil.disk_usage(RAM_DISK)
-    
-    # PXE traffic counting
     unique_clients = 0
     try:
         log_file = "/var/log/nginx/access.log"
@@ -176,8 +171,6 @@ async def get_stats(token: str = Depends(verify_token)):
             threshold = now - timedelta(seconds=15)
             unique_ips = set()
             
-            # Pattern to match IP and Timestamp: 10.132.96.43 - - [05/Feb/2026:12:39:33 +0700]
-            # We focus on the timestamp part after '[' and before ' '
             for line in lines:
                 if "/pxe/" in line:
                     match = re.search(r'(\d+\.\d+\.\d+\.\d+) .*? \[(.*?)\]', line)
@@ -239,7 +232,6 @@ async def handle_iso_upload(file: UploadFile):
     iso_path = os.path.join(UPLOAD_DIR, "uploaded.iso")
     extract_path = os.path.join(UPLOAD_DIR, "iso_extract")
     
-    # System wipe before ISO processing
     components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
     for f in components:
         try:
@@ -247,13 +239,10 @@ async def handle_iso_upload(file: UploadFile):
             p_path = os.path.join(UPLOAD_DIR, f)
             if os.path.exists(p_path): 
                 os.remove(p_path)
-                print(f"Deleted old persistent: {p_path}")
             
-            # Wipe from RAM cache
             r_path = os.path.join(RAM_DISK, f)
             if os.path.exists(r_path): 
                 os.remove(r_path)
-                print(f"Deleted old cache: {r_path}")
         except Exception as e:
             print(f"Warning during cleanup: {e}")
 
@@ -273,10 +262,8 @@ async def handle_iso_upload(file: UploadFile):
         # Extract using 7z
         subprocess.run(["7z", "x", iso_path, f"-o{extract_path}", "-y"], check=True)
         
-        # Find components
         found = {"vmlinuz": False, "initrd": False, "rootfs": False}
         
-        # Kernel search
         for pattern in ["**/live/vmlinuz*", "**/casper/vmlinuz*", "**/vmlinuz*", "**/kernel*"]:
             matches = glob.glob(os.path.join(extract_path, pattern), recursive=True)
             if matches:
@@ -306,11 +293,10 @@ async def handle_iso_upload(file: UploadFile):
                  matches.sort(key=len)
                  dest_path = os.path.join(UPLOAD_DIR, "rootfs.squashfs")
                  shutil.copy2(matches[0], dest_path)
-                 os.chmod(dest_path, 0o666)  # Set wide permissions
+                 os.chmod(dest_path, 0o666)
                  found["rootfs"] = True
                  break
 
-        # NEW: Automatically deploy to RAM after extraction
         files_map = {
             "vmlinuz": "vmlinuz",
             "initrd.img": "initrd.img",
@@ -380,7 +366,6 @@ async def factory_reset(token: str = Depends(verify_token)):
             except Exception as e:
                 print(f"Failed to delete {item_path}: {e}")
         
-        # 2. Thoroughly clear RAM_DISK
         for item in os.listdir(RAM_DISK):
             item_path = os.path.join(RAM_DISK, item)
             try:
@@ -389,7 +374,6 @@ async def factory_reset(token: str = Depends(verify_token)):
             except Exception as e:
                 print(f"Failed to delete RAM item {item_path}: {e}")
         
-        # 3. Clear Nginx Logs
         try:
             log_file = "/var/log/nginx/access.log"
             if os.path.exists(log_file):
@@ -424,8 +408,6 @@ async def get_logs(token: str = Depends(verify_token)):
         result = subprocess.run(["tail", "-n", "100", log_file], capture_output=True, text=True)
         all_lines = result.stdout.splitlines()
         
-        # Filter out noise: dashboard API calls and Favicon
-        # We only want to see /pxe/ downloads or main page hits
         filtered = [
             line for line in all_lines 
             if "/api/stats" not in line and "/api/files" not in line and "/api/logs" not in line and "/favicon.ico" not in line
