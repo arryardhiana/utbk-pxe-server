@@ -30,10 +30,10 @@ Agar client dapat booting melalui server ini, Anda perlu mengatur DHCP Options p
 Masuk ke menu `/ip dhcp-server network` dan atur parameter berikut pada jaringan yang digunakan:
 
 ```bash
-# Ganti 10.8.0.70 dengan IP Server UTBK PXE Anda
+# Ganti <SERVER_IP> dengan IP Server UTBK PXE Anda
 /ip dhcp-server network
 set [find address=192.168.88.0/24] \
-    next-server=10.8.0.70 \
+    next-server=<SERVER_IP> \
     boot-file-name=bootx64.efi
 ```
 

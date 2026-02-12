@@ -57,7 +57,7 @@ def detect_host_ip():
             if addr.family == socket.AF_INET and addr.address != '127.0.0.1':
                 return addr.address
                 
-    return "10.8.0.70" # Hard fallback if nothing found
+    return "127.0.0.1" # Hard fallback if nothing found
 
 def get_config():
     import json
@@ -79,7 +79,7 @@ def get_config():
                 if addr.family == socket.AF_INET:
                     all_host_ips.append(addr.address)
         
-        if saved_ip not in all_host_ips and saved_ip != "10.8.0.70":
+        if saved_ip not in all_host_ips and saved_ip != "127.0.0.1":
             print(f"Portability Alert: Saved IP {saved_ip} not found on this host. Re-detecting...")
             detected_ip = detect_host_ip()
             if detected_ip != saved_ip:
@@ -99,7 +99,7 @@ def save_config(config):
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
     # Update iPXE files whenever IP changes
-    update_ipxe_files(config.get("server_ip", "10.8.0.70"))
+    update_ipxe_files(config.get("server_ip", "127.0.0.1"))
 
 def update_ipxe_files(ip):
     content = f"#!ipxe\n\ndhcp || reboot\n\nset server_ip {ip}\n\nkernel http://${{server_ip}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{server_ip}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{server_ip}}/pxe/initrd.img\nboot\n"
