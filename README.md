@@ -4,16 +4,6 @@
 
 ---
 
-## ✨ Fitur Utama
-- **Auto ISO Ingestion**: Cukup upload file ISO, sistem akan otomatis mengekstrak Kernel, Initrd, dan RootFS.
-- **RAM-Speed Delivery**: Semua komponen boot dilayani langsung dari RAM menggunakan Nginx dengan optimasi `sendfile`.
-- **Smart IP Autodetect**: Mendeteksi interface jaringan host secara otomatis (ens/eth) pada booting pertama.
-- **Premium Dashboard**: UI modern dengan fitur **Dark/Light Mode** dan **Live Traffic Monitor**.
-- **Real-time Metrics**: Memantau penggunaan RAM, Cache, dan jumlah client PXE unik dalam jendela waktu 15 detik.
-- **Cross-Network Optimized**: Penyesuaian konfigurasi untuk kestabilan transfer data pada infrastruktur jaringan yang kompleks (VLAN/VPN).
-
----
-
 ## 🛠️ Cara Instalasi
 
 1. **Persyaratan**:
@@ -34,7 +24,7 @@
 
 ## 🛰️ Konfigurasi MikroTik (DHCP Server)
 
-Agar client dapat booting melalui server ini, Anda perlu mengatur DHCP Options pada MikroTik Anda.
+Agar client dapat booting melalui server ini, Anda perlu mengatur DHCP Options pada router anda.
 
 ### Melalui Winbox/Terminal:
 Masuk ke menu `/ip dhcp-server network` dan atur parameter berikut pada jaringan yang digunakan:
@@ -51,16 +41,6 @@ set [find address=192.168.88.0/24] \
 - **Next Server (Option 66)**: Alamat IP Host tempat UTBK PXE Server berjalan.
 - **Boot File Name (Option 67)**:
   - Gunakan `bootx64.efi` (Standard UEFI).
-  - Sistem ini menggunakan `snponly.efi` yang di-rename menjadi `bootx64.efi` untuk performa terbaik menggunakan driver motherboard.
-
----
-
-## 📂 Struktur Direktori
-- `/frontend`: Dashboard UI (HTML, Tailwind, Alpine.js).
-- `/backend`: API server menggunakan FastAPI (Python).
-- `/data-source`: Penyimpanan permanen ISO dan konfigurasi.
-- `/tftpboot`: Direktori layanan TFTP untuk iPXE binaries.
-- `/scripts`: Konfigurasi Nginx dan Entrypoint sistem.
 
 ---
 
