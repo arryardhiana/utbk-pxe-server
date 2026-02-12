@@ -669,8 +669,9 @@
                         return;
                     }
 
-                    if (this.files.active_iso !== 'None' || this.files.deployed.length > 0) {
-                        alert('System Lock: Sebuah ISO sedang aktif dan termuat di RAM. Silakan lakukan "Factory Reset" terlebih dahulu.');
+                    console.log('ISO Upload Check:', this.files);
+                    if ((this.files.active_iso && this.files.active_iso !== 'None') || (this.files.deployed && this.files.deployed.length > 0)) {
+                        alert('System Lock: Sebuah ISO sedang aktif (' + this.files.active_iso + ') atau komponen terdeteksi di RAM. Silakan lakukan "Factory Reset" terlebih dahulu.');
                         event.target.value = '';
                         return;
                     }

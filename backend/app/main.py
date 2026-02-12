@@ -405,7 +405,8 @@ async def factory_reset(token: str = Depends(verify_token)):
 @app.get("/api/files")
 async def list_files(token: str = Depends(verify_token)):
     uploaded = os.listdir(UPLOAD_DIR)
-    deployed = [f for f in os.listdir(RAM_DISK) if f != "lost+found"]
+    boot_components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
+    deployed = [f for f in os.listdir(RAM_DISK) if f in boot_components]
     return {
         "uploaded": uploaded, 
         "deployed": deployed,
