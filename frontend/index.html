@@ -28,20 +28,24 @@
             --log-bg: rgba(0, 0, 0, 0.4);
             --log-footer: rgba(2, 6, 23, 0.5);
             --border-subtle: rgba(255, 255, 255, 0.05);
+            --input-bg: rgba(15, 23, 42, 0.6);
+            --input-border: rgba(51, 65, 85, 0.5);
         }
 
         .light-mode {
-            --bg-body: radial-gradient(circle at top right, #f8fafc, #f1f5f9);
-            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.6) 100%);
-            --glass-border: rgba(0, 0, 0, 0.05);
-            --text-main: #0f172a;
+            --bg-body: radial-gradient(circle at top right, #f1f5f9, #e2e8f0);
+            --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+            --glass-border: rgba(0, 0, 0, 0.04);
+            --text-main: #1e293b;
             --text-muted: #64748b;
-            --card-shadow: rgba(0, 0, 0, 0.05);
-            --drop-bg: rgba(255, 255, 255, 0.5);
-            --drop-border: #e2e8f0;
-            --log-bg: rgba(255, 255, 255, 0.5);
-            --log-footer: rgba(0, 0, 0, 0.02);
-            --border-subtle: rgba(0, 0, 0, 0.05);
+            --card-shadow: rgba(15, 23, 42, 0.08);
+            --drop-bg: rgba(255, 255, 255, 0.3);
+            --drop-border: rgba(0, 0, 0, 0.05);
+            --log-bg: rgba(255, 255, 255, 0.4);
+            --log-footer: rgba(0, 0, 0, 0.01);
+            --border-subtle: rgba(0, 0, 0, 0.03);
+            --input-bg: rgba(255, 255, 255, 0.8);
+            --input-border: rgba(0, 0, 0, 0.1);
         }
 
         body {
@@ -374,10 +378,10 @@
                                     Interface</label>
                                 <div class="relative z-20">
                                     <select x-model="tempIP" @change="saveIP()"
-                                        class="w-full bg-slate-900/60 border border-slate-700/50 hover:border-amber-500/30 rounded-xl px-4 py-2.5 text-xs font-mono text-main focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer relative z-30 transition-all">
+                                        class="w-full bg-[var(--input-bg)] border border-[var(--input-border)] hover:border-amber-500/30 rounded-xl px-4 py-2.5 text-xs font-mono text-main focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer relative z-30 transition-all">
                                         <template x-for="net in networks" :key="net.ip">
                                             <option :value="net.ip" x-text="net.iface + ' (' + net.ip + ')'"
-                                                class="bg-slate-900 text-white"></option>
+                                                class="bg-[var(--input-bg)] text-main"></option>
                                         </template>
                                     </select>
                                     <div
