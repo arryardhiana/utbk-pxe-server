@@ -1,16 +1,24 @@
 # 🚀 UTBK PXE Server 2.0
 
-**UTBK PXE Server** adalah platform orkestrasi PXE Boot modern yang dirancang untuk pendistribusian sistem operasi secara cepat dan efisien melalui jaringan lokal maupun antar-network. Aplikasi ini mengotomatisasi proses ekstraksi ISO, konfigurasi iPXE, dan penyajian file sistem langsung dari RAM (tmpfs) untuk performa maksimal.
+**UTBK PXE Server** adalah platform orkestrasi PXE Boot yang dirancang untuk pendistribusian sistem operasi secara cepat dan efisien melalui jaringan lokal maupun antar-network. Aplikasi ini mengotomatisasi proses ekstraksi ISO, konfigurasi iPXE, dan penyajian file sistem langsung dari RAM (tmpfs) untuk performa maksimal.
+
+![Dashboard Preview](assets/dashboard.png)
 
 ---
 
 ## 🛠️ Cara Instalasi
 
-1. **Persyaratan**:
-   - Docker & Docker Compose
-   - Perangkat dengan interface jaringan fisik (ens/eth)
+### 0. Instalasi Docker (Jika belum ada):
+Jika server Anda baru, jalankan perintah satu baris ini untuk instalasi Docker otomatis:
+```bash
+curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER
+```
 
-2. **Clone & Jalankan**:
+### 1. Persyaratan:
+- Perangkat dengan interface jaringan fisik (ens/eth)
+- Akses Root/Sudo
+
+### 2. Clone & Jalankan:
    ```bash
    git clone https://github.com/arryardhiana/utbk-pxe-server.git
    cd utbk-pxe-server
