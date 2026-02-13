@@ -19,29 +19,37 @@ curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER
 - Akses Root/Sudo
 - **Penting**: Pastikan port `80` pada host tidak sedang digunakan oleh aplikasi lain (seperti Apache/Nginx bawaan) agar server PXE dapat berjalan normal.
 
-### 2. Clone & Jalankan:
+### 2. Jalankan Server:
    ```bash
    git clone https://github.com/arryardhiana/utbk-pxe-server.git
    cd utbk-pxe-server
+   
+   # Jalankan Orchestrator (Bawaan Tanpa Netdata)
    docker compose up -d --build
    ```
 
-3. **Akses Dashboard**:
+### 3. Monitoring Opsional (Netdata):
+Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+   ```
+
+4. **Akses Dashboard**:
    - **Main Dashboard**: `http://ip-server:8000`
-   - **Netdata Monitoring**: `http://ip-server:19999` (Real-time stats)
+   - **Netdata Monitoring**: `http://ip-server:19999` (Hanya jika monitoring aktif)
 
 ---
 
 ## ✨ Fitur Utama
 
-- **Real-time Monitoring**: Integrasi Netdata untuk memantau performa server (CPU, RAM, Disk I/O) secara instan.
-- **Dynamic iPXE**: Skrip boot otomatis menggunakan variabel `${next-server}`, mendukung server dengan multi-interface tanpa konfigurasi manual.
+- **Built-in Monitoring**: Pantau statistik client (Min/Max) dan kecepatan network (Real-time & 6h history) langsung di dashboard utama tanpa database.
+- **Optional Netdata**: Monitoring mendalam tingkat OS yang dapat diaktifkan melalui port `19999`.
 - **High Performance**: Penyajian file sistem langsung dari RAM (tmpfs) untuk mempercepat proses loading client.
 - **Auto Ingestion**: Ekstraksi ISO otomatis ke dalam struktur direktori PXE.
 
 ---
 
-## 🛰️ Konfigurasi MikroTik (DHCP Server)
+## 🛰️ Contoh Konfigurasi MikroTik (DHCP Server)
 
 Agar client dapat booting melalui server ini, Anda perlu mengatur DHCP Options pada router anda.
 

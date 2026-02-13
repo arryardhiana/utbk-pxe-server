@@ -20,37 +20,9 @@ services:
       - TZ=Asia/Jakarta
       - APP_PASSWORD=admin123
 
-  netdata:
-    image: netdata/netdata:latest
-    container_name: netdata
-    pid: host
-    network_mode: host
-    restart: always
-    environment:
-      - TZ=Asia/Jakarta
-    cap_add:
-      - SYS_PTRACE
-      - SYS_ADMIN
-    security_opt:
-      - apparmor:unconfined
-    volumes:
-      - ./scripts/netdata.conf:/etc/netdata/netdata.conf:ro
-      - netdataconfig:/etc/netdata
-      - netdatalib:/var/lib/netdata
-      - netdatacache:/var/cache/netdata
-      - /etc/passwd:/host/etc/passwd:ro
-      - /etc/group:/host/etc/group:ro
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /etc/os-release:/host/etc/os-release:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-
 volumes:
   ram-disk:
     driver_opts:
       type: tmpfs
       device: tmpfs
       o: "size=2G"
-  netdataconfig:
-  netdatalib:
-  netdatacache:

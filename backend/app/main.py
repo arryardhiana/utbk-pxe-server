@@ -18,6 +18,8 @@ import subprocess
 import glob
 from datetime import datetime, timedelta
 import re
+from datetime import datetime, timedelta
+import re
 
 app = FastAPI(title="UTBK PXE Server API")
 
@@ -27,6 +29,11 @@ TFTP_BOOT = os.getenv("TFTP_BOOT", "/var/lib/tftpboot")
 METADATA_FILE = os.path.join(UPLOAD_DIR, "iso_metadata.json")
 CONFIG_FILE = os.path.join(UPLOAD_DIR, "config.json")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "admin123")
+ 
+# Volatile session statistics
+MAX_CLIENTS_SESSION = 0
+MIN_CLIENTS_SESSION = 0
+SESSION_STARTED = False
 
 async def verify_token(x_dashboard_token: str = Header(None)):
     if not x_dashboard_token or x_dashboard_token != APP_PASSWORD:
@@ -138,6 +145,7 @@ async def startup_event():
             except Exception as e:
                 print(f"Failed to auto-load {src_name}: {e}")
 
+
 class SystemStats(BaseModel):
     ram_used: float
     ram_total: float
@@ -146,9 +154,12 @@ class SystemStats(BaseModel):
     tmpfs_total: float
     tmpfs_percent: float
     unique_clients: int
+    min_clients: int
+    max_clients: int
 
 @app.get("/api/stats", response_model=SystemStats)
 async def get_stats(token: str = Depends(verify_token)):
+    global MAX_CLIENTS_SESSION, MIN_CLIENTS_SESSION, SESSION_STARTED
     mem = psutil.virtual_memory()
     tmpfs = psutil.disk_usage(RAM_DISK)
     unique_clients = 0
@@ -159,7 +170,8 @@ async def get_stats(token: str = Depends(verify_token)):
             lines = result.stdout.splitlines()
             
             now = datetime.now()
-            threshold = now - timedelta(seconds=15)
+            # Increased window to 120 seconds to prevent flickering
+            threshold = now - timedelta(seconds=120)
             unique_ips = set()
             
             for line in lines:
@@ -178,6 +190,18 @@ async def get_stats(token: str = Depends(verify_token)):
     except Exception as e:
         print(f"Error calculating realtime clients: {e}")
 
+    # Update session-based min/max
+    if not SESSION_STARTED:
+        if unique_clients > 0:
+            MIN_CLIENTS_SESSION = unique_clients
+            MAX_CLIENTS_SESSION = unique_clients
+            SESSION_STARTED = True
+    else:
+        if unique_clients > MAX_CLIENTS_SESSION:
+            MAX_CLIENTS_SESSION = unique_clients
+        if unique_clients < MIN_CLIENTS_SESSION and unique_clients > 0:
+            MIN_CLIENTS_SESSION = unique_clients
+
     return {
         "ram_used": mem.used,
         "ram_total": mem.total,
@@ -185,7 +209,9 @@ async def get_stats(token: str = Depends(verify_token)):
         "tmpfs_used": tmpfs.used,
         "tmpfs_total": tmpfs.total,
         "tmpfs_percent": tmpfs.percent,
-        "unique_clients": unique_clients
+        "unique_clients": unique_clients,
+        "min_clients": MIN_CLIENTS_SESSION,
+        "max_clients": MAX_CLIENTS_SESSION
     }
 
 @app.post("/api/upload/{file_type}")
