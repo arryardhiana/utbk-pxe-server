@@ -95,7 +95,7 @@ def save_config(config):
     update_ipxe_files(config.get("server_ip", "127.0.0.1"))
 
 def update_ipxe_files(ip):
-    content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server {ip}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
+    content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server ${{next-server}}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
     for filename in ["autoexec.ipxe", "boot.ipxe"]:
         with open(os.path.join(TFTP_BOOT, filename), "w") as f:
             f.write(content)

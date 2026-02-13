@@ -2,8 +2,8 @@
 
 dhcp || reboot
 
-set server_ip 10.8.0.70
+set boot_server ${next-server}
 
-kernel http://${server_ip}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${server_ip}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0
-initrd http://${server_ip}/pxe/initrd.img
+kernel http://${boot_server}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${boot_server}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0
+initrd http://${boot_server}/pxe/initrd.img
 boot
