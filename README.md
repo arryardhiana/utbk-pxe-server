@@ -27,7 +27,17 @@ curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER
    ```
 
 3. **Akses Dashboard**:
-   Buka browser dan akses `http://ip-server:8000`
+   - **Main Dashboard**: `http://ip-server:8000`
+   - **Netdata Monitoring**: `http://ip-server:19999` (Real-time stats)
+
+---
+
+## ✨ Fitur Utama
+
+- **Real-time Monitoring**: Integrasi Netdata untuk memantau performa server (CPU, RAM, Disk I/O) secara instan.
+- **Dynamic iPXE**: Skrip boot otomatis menggunakan variabel `${next-server}`, mendukung server dengan multi-interface tanpa konfigurasi manual.
+- **High Performance**: Penyajian file sistem langsung dari RAM (tmpfs) untuk mempercepat proses loading client.
+- **Auto Ingestion**: Ekstraksi ISO otomatis ke dalam struktur direktori PXE.
 
 ---
 
