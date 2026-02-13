@@ -34,22 +34,18 @@ async def verify_token(x_dashboard_token: str = Header(None)):
     return x_dashboard_token
 
 def detect_host_ip():
-    """Detects the primary host IP, excluding lo and docker interfaces."""
     interfaces = psutil.net_if_addrs()
-    # Priority patterns for main interfaces
     priority_patterns = [r'^eth', r'^ens', r'^eno', r'^enp']
     
-    # First, try to find an IP on priority interfaces
     for pattern in priority_patterns:
         for iface, addrs in interfaces.items():
             if re.match(pattern, iface):
                 for addr in addrs:
-                    if addr.family == socket.AF_INET: # Only IPv4
+                    if addr.family == socket.AF_INET:
                         if addr.address == '127.0.0.1':
                             continue
                         return addr.address
     
-    # Fallback: any interface that isn't lo, docker, or bridge
     for iface, addrs in interfaces.items():
         if iface == 'lo' or iface.startswith('docker') or iface.startswith('br-') or iface.startswith('veth'):
             continue
@@ -57,7 +53,7 @@ def detect_host_ip():
             if addr.family == socket.AF_INET and addr.address != '127.0.0.1':
                 return addr.address
                 
-    return "127.0.0.1" # Hard fallback if nothing found
+    return "127.0.0.1"
 
 def get_config():
     import json
@@ -69,7 +65,6 @@ def get_config():
         except:
             pass
     
-    # Smart Validation: Check if saved IP still belongs to this host
     if config and "server_ip" in config:
         saved_ip = config["server_ip"]
         interfaces = psutil.net_if_addrs()
@@ -88,7 +83,6 @@ def get_config():
                 print(f"Network Adjusted: New IP {detected_ip} applied.")
         return config
 
-    # Fallback to detection if no config or invalid
     detected_ip = detect_host_ip()
     new_config = {"server_ip": detected_ip}
     save_config(new_config)
@@ -98,7 +92,6 @@ def save_config(config):
     import json
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
-    # Update iPXE files whenever IP changes
     update_ipxe_files(config.get("server_ip", "127.0.0.1"))
 
 def update_ipxe_files(ip):
@@ -119,14 +112,12 @@ def get_iso_name():
             return json.load(f).get("active_iso", "None")
     return "None"
 
-# Ensure directories exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(RAM_DISK, exist_ok=True)
 os.makedirs(TFTP_BOOT, exist_ok=True)
 
 @app.on_event("startup")
 async def startup_event():
-    # Sync IP configuration on startup
     config = get_config()
     update_ipxe_files(config.get("server_ip"))
     
@@ -164,7 +155,6 @@ async def get_stats(token: str = Depends(verify_token)):
     try:
         log_file = "/var/log/nginx/access.log"
         if os.path.exists(log_file):
-            # Get last 200 lines to check recent activity
             result = subprocess.run(["tail", "-n", "200", log_file], capture_output=True, text=True)
             lines = result.stdout.splitlines()
             
@@ -177,7 +167,7 @@ async def get_stats(token: str = Depends(verify_token)):
                     match = re.search(r'(\d+\.\d+\.\d+\.\d+) .*? \[(.*?)\]', line)
                     if match:
                         ip = match.group(1)
-                        ts_str = match.group(2).split(' ')[0] # 05/Feb/2026:12:39:33
+                        ts_str = match.group(2).split(' ')[0]
                         try:
                             log_time = datetime.strptime(ts_str, "%d/%b/%Y:%H:%M:%S")
                             if log_time > threshold:
@@ -219,14 +209,12 @@ async def upload_file(file_type: str, file: UploadFile = File(...), token: str =
     return {"filename": file.filename, "type": file_type}
 
 async def handle_iso_upload(file: UploadFile):
-    # VALIDATION: Ensure no existing ISO is active
     if get_iso_name() != "None" or any(os.path.exists(os.path.join(RAM_DISK, f)) for f in ["vmlinuz", "initrd.img", "rootfs.squashfs"]):
         raise HTTPException(
             status_code=403, 
             detail="System Lock: An ISO is already active. Please perform a 'Factory Reset' to clear the system before uploading a new one."
         )
 
-    # VALIDATION: Ensure file is an ISO
     if not file.filename.lower().endswith('.iso'):
         raise HTTPException(status_code=400, detail="Forbidden format: Only .iso files are allowed for orchestration.")
 
@@ -236,7 +224,6 @@ async def handle_iso_upload(file: UploadFile):
     components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
     for f in components:
         try:
-            # Wipe from persistent storage
             p_path = os.path.join(UPLOAD_DIR, f)
             if os.path.exists(p_path): 
                 os.remove(p_path)
@@ -247,20 +234,16 @@ async def handle_iso_upload(file: UploadFile):
         except Exception as e:
             print(f"Warning during cleanup: {e}")
 
-    # Save ISO
     with open(iso_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
-    # Ensure ISO is readable
     os.chmod(iso_path, 0o666)
     
-    # Clean and create extract dir
     if os.path.exists(extract_path):
         shutil.rmtree(extract_path)
     os.makedirs(extract_path)
     
     try:
-        # Extract using 7z
         subprocess.run(["7z", "x", iso_path, f"-o{extract_path}", "-y"], check=True)
         
         found = {"vmlinuz": False, "initrd": False, "rootfs": False}
@@ -268,26 +251,23 @@ async def handle_iso_upload(file: UploadFile):
         for pattern in ["**/live/vmlinuz*", "**/casper/vmlinuz*", "**/vmlinuz*", "**/kernel*"]:
             matches = glob.glob(os.path.join(extract_path, pattern), recursive=True)
             if matches:
-                 # Sort to pick the one with shortest path or specific criteria if needed
                  matches.sort(key=len)
                  dest_path = os.path.join(UPLOAD_DIR, "vmlinuz")
                  shutil.copy2(matches[0], dest_path)
-                 os.chmod(dest_path, 0o666)  # Set wide permissions
+                 os.chmod(dest_path, 0o666)
                  found["vmlinuz"] = True
                  break
         
-        # Initrd search
         for pattern in ["**/live/initrd*", "**/casper/initrd*", "**/initrd*", "**/initramfs*"]:
             matches = glob.glob(os.path.join(extract_path, pattern), recursive=True)
             if matches:
                  matches.sort(key=len)
                  dest_path = os.path.join(UPLOAD_DIR, "initrd.img")
                  shutil.copy2(matches[0], dest_path)
-                 os.chmod(dest_path, 0o666)  # Set wide permissions
+                 os.chmod(dest_path, 0o666)
                  found["initrd"] = True
                  break
                  
-        # SquashFS search
         for pattern in ["**/live/*.squashfs", "**/casper/*.squashfs", "**/*.squashfs"]:
             matches = glob.glob(os.path.join(extract_path, pattern), recursive=True)
             if matches:
@@ -321,8 +301,6 @@ async def handle_iso_upload(file: UploadFile):
 @app.post("/api/deploy")
 async def deploy_to_ram(token: str = Depends(verify_token)):
     try:
-        # Expected names in UPLOAD_DIR (source)
-        # Expected names in RAM_DISK (destination)
         files_map = {
             "vmlinuz": "vmlinuz",
             "initrd.img": "initrd.img",
@@ -356,7 +334,6 @@ async def unload_from_ram(token: str = Depends(verify_token)):
 @app.post("/api/reset")
 async def factory_reset(token: str = Depends(verify_token)):
     try:
-        # 1. Thoroughly clear UPLOAD_DIR (data-source)
         for item in os.listdir(UPLOAD_DIR):
             item_path = os.path.join(UPLOAD_DIR, item)
             try:
@@ -405,7 +382,6 @@ async def get_logs(token: str = Depends(verify_token)):
         if not os.path.exists(log_file):
             return {"logs": ["Waiting for traffic..."]}
             
-        # Read the last 100 lines to ensure we have enough after filtering
         result = subprocess.run(["tail", "-n", "100", log_file], capture_output=True, text=True)
         all_lines = result.stdout.splitlines()
         
@@ -414,7 +390,6 @@ async def get_logs(token: str = Depends(verify_token)):
             if "/api/stats" not in line and "/api/files" not in line and "/api/logs" not in line and "/favicon.ico" not in line
         ]
         
-        # Return newest first, capped at 50
         filtered.reverse()
         return {"logs": filtered[:50]}
     except Exception as e:
@@ -422,17 +397,15 @@ async def get_logs(token: str = Depends(verify_token)):
 
 @app.get("/api/networks")
 async def get_networks(token: str = Depends(verify_token)):
-    """Returns a list of available network interfaces and their IPs."""
     interfaces = psutil.net_if_addrs()
     networks = []
     
     for iface, addrs in interfaces.items():
-        # Filter out noisy virtual interfaces
         if iface == 'lo' or iface.startswith('docker') or iface.startswith('br-') or iface.startswith('veth'):
             continue
             
         for addr in addrs:
-            if addr.family == socket.AF_INET: # Only IPv4
+            if addr.family == socket.AF_INET:
                 networks.append({
                     "iface": iface,
                     "ip": addr.address
@@ -454,5 +427,4 @@ async def update_config(config: dict, token: str = Depends(verify_token)):
 async def verify_auth(token: str = Depends(verify_token)):
     return {"status": "success", "message": "Authenticated"}
 
-# Serve Frontend
 app.mount("/", StaticFiles(directory="/app/frontend", html=True), name="frontend")
