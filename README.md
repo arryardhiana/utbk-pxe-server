@@ -17,6 +17,7 @@ curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER
 ### 1. Persyaratan:
 - Perangkat dengan interface jaringan fisik (ens/eth)
 - Akses Root/Sudo
+- **Penting**: Pastikan port `80` pada host tidak sedang digunakan oleh aplikasi lain (seperti Apache/Nginx bawaan) agar server PXE dapat berjalan normal.
 
 ### 2. Clone & Jalankan:
    ```bash

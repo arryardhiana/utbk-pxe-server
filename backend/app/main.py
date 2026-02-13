@@ -102,7 +102,7 @@ def save_config(config):
     update_ipxe_files(config.get("server_ip", "127.0.0.1"))
 
 def update_ipxe_files(ip):
-    content = f"#!ipxe\n\ndhcp || reboot\n\nset server_ip {ip}\n\nkernel http://${{server_ip}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{server_ip}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{server_ip}}/pxe/initrd.img\nboot\n"
+    content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server {ip}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
     for filename in ["autoexec.ipxe", "boot.ipxe"]:
         with open(os.path.join(TFTP_BOOT, filename), "w") as f:
             f.write(content)
@@ -139,10 +139,11 @@ async def startup_event():
     for src_name, dest_name in files_map.items():
         src_path = os.path.join(UPLOAD_DIR, src_name)
         dest_path = os.path.join(RAM_DISK, dest_name)
-        if os.path.exists(src_path) and not os.path.exists(dest_path):
+        if os.path.exists(src_path):
             try:
-                print(f"Auto-loading {src_name} to RAM...")
+                print(f"Syncing {src_name} to RAM Cache...")
                 shutil.copy2(src_path, dest_path)
+                os.chmod(dest_path, 0o666)
             except Exception as e:
                 print(f"Failed to auto-load {src_name}: {e}")
 
@@ -380,7 +381,7 @@ async def factory_reset(token: str = Depends(verify_token)):
                 with open(log_file, "w") as f:
                     f.truncate(0)
         except Exception as e:
-            print(f"Failed to clear nginx logs: e")
+            print(f"Failed to clear nginx logs: {e}")
             
         return {"status": "success", "message": "Full system wipe complete. All folders and logs cleared."}
     except Exception as e:
