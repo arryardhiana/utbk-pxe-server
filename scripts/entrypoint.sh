@@ -24,6 +24,16 @@ if [ ! -f /etc/munin/munin-node.conf.bak ]; then
     echo "allow ^::1$" >> /etc/munin/munin-node.conf
 fi
 
+# Fix Munin master config (illegal characters like underscores in hostname)
+echo "Fixing Munin master config..."
+sed -i "s/\[$(hostname)\]/\[pxe-node\]/g" /etc/munin/munin.conf 2>/dev/null || true
+# Catch-all for any section name with underscores
+sed -i 's/\[\([^]]*\)_\([^]]*\)\]/\[\1-\2\]/g' /etc/munin/munin.conf 2>/dev/null || true
+# Final fallback: ensure at least one valid node exists if parsing still fails
+if ! grep -q "\[pxe-node\]" /etc/munin/munin.conf; then
+    echo -e "\n[pxe-node]\n    address 127.0.0.1\n    use_node_name yes" >> /etc/munin/munin.conf
+fi
+
 # Start Munin Node
 echo "Starting Munin node..."
 munin-node &
