@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     tzdata \
     munin \
     munin-node \
-    perl-cgi
+    perl-cgi \
+    perl-libwww
 
 # iPXE UEFI setup
 RUN mkdir -p /tmp/ipxe && \

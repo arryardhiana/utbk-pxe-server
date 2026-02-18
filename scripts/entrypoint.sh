@@ -22,11 +22,21 @@ if [ ! -f /etc/munin/munin-node.conf.bak ]; then
     cp /etc/munin/munin-node.conf /etc/munin/munin-node.conf.bak
     echo "allow ^127\.0\.0\.1$" >> /etc/munin/munin-node.conf
     echo "allow ^::1$" >> /etc/munin/munin-node.conf
+    
+    # Configure Nginx plugin environment
+    echo -e "\n[nginx*]\nenv.url http://127.0.0.1/nginx_status" >> /etc/munin/munin-node.conf
 fi
 
 # Auto-configure Munin plugins
 echo "Configuring Munin plugins..."
 munin-node-configure --shell | sh 2>/dev/null || true
+
+# Force-enable Nginx plugins if not already enabled
+for p in nginx_status nginx_request; do
+    if [ ! -L /etc/munin/plugins/$p ]; then
+        ln -s /usr/share/munin/plugins/$p /etc/munin/plugins/$p 2>/dev/null || true
+    fi
+done
 
 # Fix Munin master config (illegal characters like underscores in hostname)
 echo "Fixing Munin master config..."
