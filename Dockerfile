@@ -19,10 +19,10 @@ RUN mkdir -p /tmp/ipxe && \
     curl -o /tmp/ipxe/snponly.efi https://boot.ipxe.org/x86_64-efi/snponly.efi
 
 # Create directories
-RUN mkdir -p /app/uploads /ram-disk /var/lib/tftpboot /run/nginx /var/www/munin /var/run/munin && \
+RUN mkdir -p /app/uploads /ram-disk /var/lib/tftpboot /run/nginx /var/www/munin /var/run/munin /var/log/munin && \
     addgroup nginx munin && \
     chmod -R 755 /var/www/munin && \
-    chown -R munin:munin /var/lib/munin /var/www/munin /var/run/munin
+    chown -R munin:munin /var/lib/munin /var/www/munin /var/run/munin /var/log/munin
 
 # Copy requirements and install
 COPY backend/requirements.txt /app/requirements.txt
