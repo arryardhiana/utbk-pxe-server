@@ -12,6 +12,28 @@ echo "Starting TFTP server..."
 echo "Starting Nginx..."
 nginx &
 
+# Initialize Munin node
+echo "Initializing Munin node..."
+if [ ! -f /etc/munin/munin-node.conf.bak ]; then
+    cp /etc/munin/munin-node.conf /etc/munin/munin-node.conf.bak
+    echo "allow ^127\.0\.0\.1$" >> /etc/munin/munin-node.conf
+    echo "allow ^::1$" >> /etc/munin/munin-node.conf
+fi
+
+# Start Munin Node
+echo "Starting Munin node..."
+munin-node &
+
+# Start Munin Master (cron simulator)
+echo "Starting Munin master loop..."
+(
+    while true; do
+        echo "Updating Munin graphs..."
+        su -s /bin/sh munin -c /usr/bin/munin-cron
+        sleep 300
+    done
+) &
+
 # Start FastAPI
 echo "Starting FastAPI backend..."
 cd /app

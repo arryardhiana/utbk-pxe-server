@@ -9,14 +9,18 @@ RUN apk add --no-cache \
     iproute2 \
     curl \
     p7zip \
-    tzdata
+    tzdata \
+    munin \
+    munin-node \
+    perl-cgi
 
 # iPXE UEFI setup
 RUN mkdir -p /tmp/ipxe && \
     curl -o /tmp/ipxe/snponly.efi https://boot.ipxe.org/x86_64-efi/snponly.efi
 
 # Create directories
-RUN mkdir -p /app/uploads /ram-disk /var/lib/tftpboot /run/nginx
+RUN mkdir -p /app/uploads /ram-disk /var/lib/tftpboot /run/nginx /var/www/munin /var/run/munin && \
+    chown -R munin:munin /var/lib/munin /var/www/munin /var/run/munin
 
 # Copy requirements and install
 COPY backend/requirements.txt /app/requirements.txt
