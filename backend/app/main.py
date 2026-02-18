@@ -417,8 +417,8 @@ async def get_logs(token: str = Depends(verify_token)):
         log_pattern = re.compile(r'(?P<ip>\d+\.\d+\.\d+\.\d+) .*? \[(?P<time>.*?)\] "(?P<method>\w+) (?P<path>.*?) HTTP/.*?" (?P<status>\d+) (?P<size>\d+)')
 
         for line in all_lines:
-            # Skip noise
-            if any(x in line for x in ["/api/stats", "/api/files", "/api/logs", "/favicon.ico", "/nginx_status"]):
+            # Skip noise: Filter all /api/ traffic and common internal requests
+            if any(x in line for x in ["/api/", "/favicon.ico", "/nginx_status", "/logo.png"]):
                 continue
                 
             match = log_pattern.search(line)

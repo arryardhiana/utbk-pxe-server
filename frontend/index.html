@@ -138,11 +138,11 @@
     </style>
 </head>
 
-<body class="pb-20" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
-    <div class="container mx-auto px-6 py-10 max-w-7xl" x-show="isAuthenticated" x-cloak>
+<body class="h-screen overflow-hidden" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
+    <div class="h-full flex flex-col container mx-auto px-6 py-8 max-w-7xl" x-show="isAuthenticated" x-cloak>
 
         <!-- TOP NAVIGATION -->
-        <nav class="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-6">
+        <nav class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 flex-shrink-0">
             <div class="relative">
                 <div class="absolute -top-6 -left-6 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl text-indigo-500">
                 </div>
@@ -189,7 +189,7 @@
         </nav>
 
         <!-- DASHBOARD GRID -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 flex-grow min-h-0">
 
             <!-- COLUMN 1: SYSTEM MONITOR & CONFIG (3 COLS) -->
             <div class="lg:col-span-3 flex flex-col h-full space-y-4">
@@ -405,7 +405,7 @@
             </div>
 
             <!-- COLUMN 3: LOGS MONITOR (4 COLS) -->
-            <div class="lg:col-span-4 flex flex-col h-full max-h-[580px]">
+            <div class="lg:col-span-4 flex flex-col h-full min-h-0">
                 <div class="premium-glass rounded-[2rem] overflow-hidden flex flex-col h-full border border-white/5">
                     <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
                         <div class="flex items-center gap-3">
@@ -426,7 +426,7 @@
                         </button>
                     </div>
                     <div
-                        class="flex-grow overflow-y-auto font-mono text-[9px] custom-scrollbar log-area divide-y divide-white/[0.03]">
+                        class="flex-grow overflow-y-hidden font-mono text-[9px] custom-scrollbar log-area divide-y divide-white/[0.03]">
                         <template x-for="log in logs">
                             <div
                                 class="py-2.5 px-4 hover:bg-white/[0.03] transition-colors flex flex-col gap-1.5 group">
