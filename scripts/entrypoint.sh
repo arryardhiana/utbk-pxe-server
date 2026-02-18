@@ -24,6 +24,10 @@ if [ ! -f /etc/munin/munin-node.conf.bak ]; then
     echo "allow ^::1$" >> /etc/munin/munin-node.conf
 fi
 
+# Auto-configure Munin plugins
+echo "Configuring Munin plugins..."
+munin-node-configure --shell | sh 2>/dev/null || true
+
 # Fix Munin master config (illegal characters like underscores in hostname)
 echo "Fixing Munin master config..."
 sed -i "s/\[$(hostname)\]/\[pxe-node\]/g" /etc/munin/munin.conf 2>/dev/null || true
