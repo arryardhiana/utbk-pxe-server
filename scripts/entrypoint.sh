@@ -68,7 +68,7 @@ echo "Starting Munin master loop..."
 (
     while true; do
         echo "Updating Munin graphs..."
-        su -s /bin/sh munin -c /usr/bin/munin-cron
+        nice -n 19 su -s /bin/sh munin -c /usr/bin/munin-cron
         sleep 300
     done
 ) &
