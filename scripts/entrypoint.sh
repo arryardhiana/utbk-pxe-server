@@ -29,6 +29,11 @@ echo "Fixing Munin master config..."
 sed -i "s/\[$(hostname)\]/\[pxe-node\]/g" /etc/munin/munin.conf 2>/dev/null || true
 # Catch-all for any section name with underscores
 sed -i 's/\[\([^]]*\)_\([^]]*\)\]/\[\1-\2\]/g' /etc/munin/munin.conf 2>/dev/null || true
+
+# Explicitly set htmldir to match our Nginx config
+sed -i "s|#htmldir.*|htmldir /var/www/munin|g" /etc/munin/munin.conf
+sed -i "s|^htmldir.*|htmldir /var/www/munin|g" /etc/munin/munin.conf
+
 # Final fallback: ensure at least one valid node exists if parsing still fails
 if ! grep -q "\[pxe-node\]" /etc/munin/munin.conf; then
     echo -e "\n[pxe-node]\n    address 127.0.0.1\n    use_node_name yes" >> /etc/munin/munin.conf
