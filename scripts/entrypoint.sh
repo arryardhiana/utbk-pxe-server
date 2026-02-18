@@ -22,10 +22,16 @@ if [ ! -f /etc/munin/munin-node.conf.bak ]; then
     cp /etc/munin/munin-node.conf /etc/munin/munin-node.conf.bak
     echo "allow ^127\.0\.0\.1$" >> /etc/munin/munin-node.conf
     echo "allow ^::1$" >> /etc/munin/munin-node.conf
-    
-    # Configure Nginx plugin environment
-    echo -e "\n[nginx*]\nenv.url http://127.0.0.1/nginx_status" >> /etc/munin/munin-node.conf
 fi
+
+# Fix previously corrupted munin-node.conf if any
+sed -i '/\[nginx\*\]/d' /etc/munin/munin-node.conf 2>/dev/null || true
+sed -i '/env.url http:\/\/127.0.0.1\/nginx_status/d' /etc/munin/munin-node.conf 2>/dev/null || true
+
+# Configure Nginx plugin environment (correct place)
+echo "Configuring Nginx plugin environment..."
+mkdir -p /etc/munin/plugin-conf.d
+echo -e "[nginx*]\nenv.url http://127.0.0.1/nginx_status" > /etc/munin/plugin-conf.d/nginx
 
 # Auto-configure Munin plugins
 echo "Configuring Munin plugins..."
