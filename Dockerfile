@@ -20,6 +20,8 @@ RUN mkdir -p /tmp/ipxe && \
 
 # Create directories
 RUN mkdir -p /app/uploads /ram-disk /var/lib/tftpboot /run/nginx /var/www/munin /var/run/munin && \
+    addgroup nginx munin && \
+    chmod -R 755 /var/www/munin && \
     chown -R munin:munin /var/lib/munin /var/www/munin /var/run/munin
 
 # Copy requirements and install

@@ -10,6 +10,10 @@ echo "Starting TFTP server..."
 
 # Start Nginx
 echo "Starting Nginx..."
+if [ ! -f /var/www/munin/index.html ]; then
+    echo "<html><head><meta http-equiv='refresh' content='10'></head><body><h1>Munin is initializing...</h1><p>Please wait 5 minutes for the first graph generation.</p></body></html>" > /var/www/munin/index.html
+    chown munin:munin /var/www/munin/index.html
+fi
 nginx &
 
 # Initialize Munin node
