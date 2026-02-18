@@ -405,8 +405,8 @@
             </div>
 
             <!-- COLUMN 3: LOGS MONITOR (4 COLS) -->
-            <div class="lg:col-span-4 flex flex-col h-full">
-                <div class="premium-glass rounded-[2rem] overflow-hidden flex flex-col flex-grow border border-white/5">
+            <div class="lg:col-span-4 flex flex-col h-full max-h-[600px]">
+                <div class="premium-glass rounded-[2rem] overflow-hidden flex flex-col h-full border border-white/5">
                     <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
                         <div class="flex items-center gap-3">
                             <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_#10b981]">
@@ -415,26 +415,41 @@
                                 Traffic
                                 Monitor</h3>
                         </div>
-                        <div
-                            class="flex items-center gap-4 text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono">
-                            <span>access.log</span>
-                            <div class="w-1 h-1 rounded-full bg-slate-700"></div>
-                            <span>3s Freq</span>
-                        </div>
+                        <button @click="showFullLogs = true"
+                            class="text-[8px] font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-widest transition-colors flex items-center gap-1.5 px-2 py-1 rounded-lg bg-cyan-400/5 border border-cyan-400/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                            Expand
+                        </button>
                     </div>
                     <div
-                        class="flex-grow p-5 overflow-y-auto font-mono text-[10px] space-y-2 custom-scrollbar log-area">
+                        class="flex-grow overflow-y-auto font-mono text-[9px] custom-scrollbar log-area divide-y divide-white/[0.03]">
                         <template x-for="log in logs">
                             <div
-                                class="py-2 px-3 rounded-lg hover:bg-white/5 transition-colors flex gap-3 items-start group">
-                                <span
-                                    class="text-cyan-500/60 shrink-0 group-hover:text-cyan-400 transition-colors">>></span>
-                                <span class="text-muted font-medium leading-relaxed break-all" x-text="log"></span>
+                                class="py-2.5 px-4 hover:bg-white/[0.03] transition-colors flex flex-col gap-1.5 group">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-1.5 py-0.5 rounded text-[8px] font-black"
+                                            :class="log.status.startsWith('2') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'"
+                                            x-text="log.status"></span>
+                                        <span class="text-[8px] text-slate-500 font-bold" x-text="log.method"></span>
+                                        <span class="text-main font-bold truncate max-w-[150px]"
+                                            x-text="log.path"></span>
+                                    </div>
+                                    <span class="text-slate-600 text-[8px]" x-text="log.time"></span>
+                                </div>
+                                <div class="flex items-center justify-between text-[8px]">
+                                    <span class="text-cyan-500/60 font-medium italic" x-text="log.ip"></span>
+                                    <span class="text-slate-600 italic" x-text="formatBytes(log.size)"></span>
+                                </div>
                             </div>
                         </template>
                         <template x-if="logs.length === 0">
                             <div
-                                class="h-full flex flex-col items-center justify-center text-slate-600 italic text-[10px] gap-4 opacity-50">
+                                class="h-full flex flex-col items-center justify-center text-slate-600 italic text-[10px] gap-4 py-20 opacity-50">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -445,9 +460,79 @@
                         </template>
                     </div>
                     <div class="px-5 py-3 bg-white/[0.02] border-t border-white/5 text-center">
-                        <span class="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em]">Stream Synced with
-                            System Node</span>
+                        <span class="text-[8px] text-slate-600 font-black uppercase tracking-[0.2em]">Dashboard
+                            Restricted View</span>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FULL LOGS MODAL -->
+        <div x-show="showFullLogs" x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl" x-cloak>
+            <div class="premium-glass w-full max-w-6xl h-[85vh] flex flex-col rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden"
+                @click.away="showFullLogs = false">
+                <div class="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+                    <div class="flex items-center gap-4">
+                        <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-pulse"></div>
+                        <div>
+                            <h2 class="text-xl font-black uppercase tracking-widest text-main">Central Audit Logs</h2>
+                            <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Full System
+                                Traffic Analysis</p>
+                        </div>
+                    </div>
+                    <button @click="showFullLogs = false"
+                        class="p-3 bg-white/5 hover:bg-red-500/10 hover:text-red-400 rounded-2xl transition-all border border-white/5 group">
+                        <svg xmlns="http://www.w3.org/2000/svg"
+                            class="h-6 w-6 group-hover:rotate-90 transition-transform" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="flex-grow overflow-auto bg-slate-950/40 p-8 custom-scrollbar">
+                    <table class="w-full text-left font-mono text-xs border-separate border-spacing-y-2">
+                        <thead>
+                            <tr class="text-slate-500 uppercase text-[9px] font-black tracking-widest">
+                                <th class="px-4 py-2">Timestamp</th>
+                                <th class="px-4 py-2">Client IP</th>
+                                <th class="px-4 py-2">Method</th>
+                                <th class="px-4 py-2">Status</th>
+                                <th class="px-4 py-2">Size</th>
+                                <th class="px-4 py-2">Resource Path</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="log in logs">
+                                <tr
+                                    class="bg-white/[0.02] hover:bg-white/[0.05] transition-all group rounded-xl overflow-hidden">
+                                    <td class="px-4 py-4 rounded-l-xl text-slate-400" x-text="log.time"></td>
+                                    <td class="px-4 py-4 text-cyan-400 font-bold" x-text="log.ip"></td>
+                                    <td class="px-4 py-4"><span
+                                            class="px-2 py-0.5 bg-slate-800 rounded text-[9px] font-bold"
+                                            x-text="log.method"></span></td>
+                                    <td class="px-4 py-4">
+                                        <span class="px-2 py-1 rounded-lg text-[10px] font-black"
+                                            :class="log.status.startsWith('2') ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'"
+                                            x-text="log.status"></span>
+                                    </td>
+                                    <td class="px-4 py-4 text-slate-500" x-text="formatBytes(log.size)"></td>
+                                    <td class="px-4 py-4 rounded-r-xl text-main font-medium break-all"
+                                        x-text="log.path"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                <div
+                    class="px-8 py-4 bg-white/[0.03] border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                    <span>Showing last 50 transactions</span>
+                    <span class="text-emerald-500 animate-pulse">● System Synced</span>
                 </div>
             </div>
         </div>
@@ -527,6 +612,7 @@
                 uploadPercent: 0,
                 uploadPhase: 'Standby',
                 logs: [],
+                showFullLogs: false,
                 config: { server_ip: '127.0.0.1' },
                 editIP: false,
                 tempIP: '',

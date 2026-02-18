@@ -406,20 +406,33 @@ async def get_logs(token: str = Depends(verify_token)):
     try:
         log_file = "/var/log/nginx/access.log"
         if not os.path.exists(log_file):
-            return {"logs": ["Waiting for traffic..."]}
+            return {"logs": []}
             
+        # Read last 100 lines for dashboard
         result = subprocess.run(["tail", "-n", "100", log_file], capture_output=True, text=True)
         all_lines = result.stdout.splitlines()
         
-        filtered = [
-            line for line in all_lines 
-            if "/api/stats" not in line and "/api/files" not in line and "/api/logs" not in line and "/favicon.ico" not in line
-        ]
+        parsed_logs = []
+        # Pattern: 10.92.162.133 - - [13/Feb/2026:19:03:14 +0700] "GET /pxe/vmlinuz HTTP/1.1" 200 12011456 "-" "iPXE/1.21.1+ (g91081)"
+        log_pattern = re.compile(r'(?P<ip>\d+\.\d+\.\d+\.\d+) .*? \[(?P<time>.*?)\] "(?P<method>\w+) (?P<path>.*?) HTTP/.*?" (?P<status>\d+) (?P<size>\d+)')
+
+        for line in all_lines:
+            # Skip noise
+            if any(x in line for x in ["/api/stats", "/api/files", "/api/logs", "/favicon.ico", "/nginx_status"]):
+                continue
+                
+            match = log_pattern.search(line)
+            if match:
+                data = match.groupdict()
+                # Clean up time
+                data['time'] = data['time'].split(' ')[0]
+                parsed_logs.append(data)
         
-        filtered.reverse()
-        return {"logs": filtered[:50]}
+        parsed_logs.reverse()
+        return {"logs": parsed_logs[:50]}
     except Exception as e:
-        return {"logs": [f"Error reading logs: {str(e)}"]}
+        print(f"Log parsing error: {e}")
+        return {"logs": []}
 
 @app.get("/api/networks")
 async def get_networks(token: str = Depends(verify_token)):
