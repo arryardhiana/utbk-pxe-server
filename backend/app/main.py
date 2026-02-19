@@ -102,7 +102,7 @@ def save_config(config):
     update_ipxe_files(config.get("server_ip", "127.0.0.1"))
 
 def update_ipxe_files(ip):
-    content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server ${{next-server}}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
+    content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server ${{next-server}}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/filesystem.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
     for filename in ["autoexec.ipxe", "boot.ipxe"]:
         with open(os.path.join(TFTP_BOOT, filename), "w") as f:
             f.write(content)
@@ -132,7 +132,7 @@ async def startup_event():
     files_map = {
         "vmlinuz": "vmlinuz",
         "initrd.img": "initrd.img",
-        "rootfs.squashfs": "rootfs.squashfs"
+        "filesystem.squashfs": "filesystem.squashfs"
     }
     for src_name, dest_name in files_map.items():
         src_path = os.path.join(UPLOAD_DIR, src_name)
@@ -227,7 +227,8 @@ async def upload_file(file_type: str, file: UploadFile = File(...), token: str =
     elif file_type == "initrd": ext = ".img"
     elif file_type == "rootfs": ext = ".squashfs"
     
-    file_path = os.path.join(UPLOAD_DIR, f"{file_type}{ext}")
+    filename = "filesystem.squashfs" if file_type == "rootfs" else f"{file_type}{ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
     
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -235,7 +236,7 @@ async def upload_file(file_type: str, file: UploadFile = File(...), token: str =
     return {"filename": file.filename, "type": file_type}
 
 async def handle_iso_upload(file: UploadFile):
-    if get_iso_name() != "None" or any(os.path.exists(os.path.join(RAM_DISK, f)) for f in ["vmlinuz", "initrd.img", "rootfs.squashfs"]):
+    if get_iso_name() != "None" or any(os.path.exists(os.path.join(RAM_DISK, f)) for f in ["vmlinuz", "initrd.img", "filesystem.squashfs"]):
         raise HTTPException(
             status_code=403, 
             detail="System Lock: An ISO is already active. Please perform a 'Factory Reset' to clear the system before uploading a new one."
@@ -247,7 +248,7 @@ async def handle_iso_upload(file: UploadFile):
     iso_path = os.path.join(UPLOAD_DIR, "uploaded.iso")
     extract_path = os.path.join(UPLOAD_DIR, "iso_extract")
     
-    components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
+    components = ["vmlinuz", "initrd.img", "filesystem.squashfs", "rootfs.squashfs"]
     for f in components:
         try:
             p_path = os.path.join(UPLOAD_DIR, f)
@@ -298,7 +299,7 @@ async def handle_iso_upload(file: UploadFile):
             matches = glob.glob(os.path.join(extract_path, pattern), recursive=True)
             if matches:
                  matches.sort(key=len)
-                 dest_path = os.path.join(UPLOAD_DIR, "rootfs.squashfs")
+                 dest_path = os.path.join(UPLOAD_DIR, "filesystem.squashfs")
                  shutil.copy2(matches[0], dest_path)
                  os.chmod(dest_path, 0o666)
                  found["rootfs"] = True
@@ -307,7 +308,7 @@ async def handle_iso_upload(file: UploadFile):
         files_map = {
             "vmlinuz": "vmlinuz",
             "initrd.img": "initrd.img",
-            "rootfs.squashfs": "rootfs.squashfs"
+            "filesystem.squashfs": "filesystem.squashfs"
         }
         for src_name, dest_name in files_map.items():
             shutil.copy2(os.path.join(UPLOAD_DIR, src_name), os.path.join(RAM_DISK, dest_name))
@@ -330,7 +331,7 @@ async def deploy_to_ram(token: str = Depends(verify_token)):
         files_map = {
             "vmlinuz": "vmlinuz",
             "initrd.img": "initrd.img",
-            "rootfs.squashfs": "rootfs.squashfs"
+            "filesystem.squashfs": "filesystem.squashfs"
         }
         
         for src_name, dest_name in files_map.items():
@@ -348,7 +349,7 @@ async def deploy_to_ram(token: str = Depends(verify_token)):
 @app.post("/api/unload")
 async def unload_from_ram(token: str = Depends(verify_token)):
     try:
-        files = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
+        files = ["vmlinuz", "initrd.img", "filesystem.squashfs"]
         for f in files:
             path = os.path.join(RAM_DISK, f)
             if os.path.exists(path):
@@ -393,7 +394,7 @@ async def factory_reset(token: str = Depends(verify_token)):
 @app.get("/api/files")
 async def list_files(token: str = Depends(verify_token)):
     uploaded = os.listdir(UPLOAD_DIR)
-    boot_components = ["vmlinuz", "initrd.img", "rootfs.squashfs"]
+    boot_components = ["vmlinuz", "initrd.img", "filesystem.squashfs"]
     deployed = [f for f in os.listdir(RAM_DISK) if f in boot_components]
     return {
         "uploaded": uploaded, 

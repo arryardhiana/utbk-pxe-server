@@ -4,6 +4,6 @@ dhcp || reboot
 
 set boot_server ${next-server}
 
-kernel http://${boot_server}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${boot_server}/pxe/rootfs.squashfs quiet splash vt.global_cursor_default=0
+kernel http://${boot_server}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${boot_server}/pxe/filesystem.squashfs quiet splash vt.global_cursor_default=0
 initrd http://${boot_server}/pxe/initrd.img
 boot

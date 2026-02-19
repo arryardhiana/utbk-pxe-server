@@ -319,7 +319,7 @@
                     </h3>
                     <div class="grid grid-cols-1 gap-2">
                         <template
-                            x-for="comp in [{id:'vmlinuz', label:'Kernel'}, {id:'initrd.img', label:'Initrd'}, {id:'rootfs.squashfs', label:'SquashFS'}]">
+                            x-for="comp in [{id:'vmlinuz', label:'Kernel'}, {id:'initrd.img', label:'Initrd'}, {id:'filesystem.squashfs', label:'SquashFS'}]">
                             <div class="p-2.5 rounded-xl border bg-white/[0.02] flex items-center justify-between border-subtle"
                                 :class="isComponentLoaded(comp.id) ? 'border-emerald-500/40 bg-emerald-500/5' : ''">
                                 <div class="flex items-center gap-3">
@@ -341,7 +341,7 @@
                                         </div>
                                         <div class="text-[10px] font-mono font-bold"
                                             :class="isComponentLoaded(comp.id) ? (darkMode ? 'text-white' : 'text-emerald-600') : 'text-slate-500'"
-                                            x-text="comp.id"></div>
+                                            x-text="isComponentLoaded(comp.id) ? 'File Found' : 'Missing'"></div>
                                     </div>
                                 </div>
                             </div>
