@@ -12,6 +12,7 @@ services:
       - ./frontend:/app/frontend
       - ./backend:/app/backend
       - ./scripts/entrypoint.sh:/app/entrypoint.sh
+      - ./scripts/nginx.conf:/etc/nginx/nginx.conf
       - ram-disk:/ram-disk
     environment:
       - UPLOAD_DIR=/app/uploads
