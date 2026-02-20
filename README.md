@@ -34,6 +34,9 @@ Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
    docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
    ```
 
+![Netdata Preview 1](assets/netdata-dash.png)
+![Netdata Preview 2](assets/netdata-dash1.png)
+
 4. **Akses Dashboard**:
    - **Main Dashboard**: `http://ip-server:8000`
    - **Netdata Monitoring**: `http://ip-server:19999` (Hanya jika monitoring aktif)
@@ -45,7 +48,7 @@ Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
 - **Built-in Monitoring**: Pantau statistik client (Min/Max) dan kecepatan network (Real-time & 6h history) langsung di dashboard utama tanpa database.
 - **Optional Netdata**: Monitoring mendalam tingkat OS yang dapat diaktifkan melalui port `19999`.
 - **High Performance**: Penyajian file sistem langsung dari RAM (tmpfs) untuk mempercepat proses loading client.
-- **Auto Ingestion**: Ekstraksi ISO otomatis ke dalam struktur direktori PXE.
+
 
 ---
 
@@ -59,10 +62,11 @@ Masuk ke menu `/ip dhcp-server network` dan atur parameter berikut pada jaringan
 ```bash
 # Ganti <SERVER_IP> dengan IP Server UTBK PXE Anda
 /ip dhcp-server network
-set [find address=192.168.88.0/24] \
+set [find address=192.168.22.0/24] \
     next-server=<SERVER_IP> \
     boot-file-name=bootx64.efi
 ```
+![Mikrotik Preview ](assets/mikrotik.png)
 
 ### Penjelasan Parameter:
 - **Next Server (Option 66)**: Alamat IP Host tempat UTBK PXE Server berjalan.
