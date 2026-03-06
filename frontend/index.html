@@ -30,22 +30,42 @@
             --border-subtle: rgba(255, 255, 255, 0.05);
             --input-bg: rgba(15, 23, 42, 0.6);
             --input-border: rgba(51, 65, 85, 0.5);
+            --status-live: #10b981;
+            --status-monitoring: #22d3ee;
+            --status-error: #f87171;
+            --accent-soft: rgba(0, 242, 255, 0.1);
+            --track-bg: #1e293b;
+            --modal-overlay: rgba(5, 10, 20, 0.85);
+            --bg-surface: rgba(2, 6, 23, 0.4);
+            --bg-header: rgba(255, 255, 255, 0.03);
+            --status-live-bg: rgba(16, 185, 129, 0.05);
+            --row-hover: rgba(255, 255, 255, 0.05);
         }
 
         .light-mode {
-            --bg-body: radial-gradient(circle at top right, #cbd5e1, #94a3b8);
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(15, 23, 42, 0.15);
+            --bg-body: radial-gradient(circle at 70% 20%, #f1f5f9 0%, #cbd5e1 100%);
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(15, 23, 42, 0.08);
             --text-main: #0f172a;
-            --text-muted: #334155;
-            --card-shadow: rgba(0, 0, 0, 0.1);
-            --drop-bg: rgba(0, 0, 0, 0.05);
-            --drop-border: rgba(0, 0, 0, 0.1);
+            --text-muted: #475569;
+            --card-shadow: rgba(15, 23, 42, 0.08);
+            --drop-bg: rgba(241, 245, 249, 0.5);
+            --drop-border: rgba(15, 23, 42, 0.12);
             --log-bg: rgba(255, 255, 255, 0.9);
-            --log-footer: rgba(0, 0, 0, 0.03);
-            --border-subtle: rgba(15, 23, 42, 0.1);
-            --input-bg: #ffffff;
-            --input-border: rgba(0, 0, 0, 0.2);
+            --log-footer: rgba(15, 23, 42, 0.02);
+            --border-subtle: rgba(15, 23, 42, 0.08);
+            --input-bg: #f8fafc;
+            --input-border: rgba(15, 23, 42, 0.15);
+            --status-live: #059669;
+            --status-monitoring: #0891b2;
+            --status-error: #dc2626;
+            --accent-soft: rgba(79, 70, 229, 0.1);
+            --track-bg: #e2e8f0;
+            --modal-overlay: rgba(241, 245, 249, 0.75);
+            --bg-surface: rgba(255, 255, 255, 0.6);
+            --bg-header: rgba(15, 23, 42, 0.02);
+            --status-live-bg: rgba(5, 150, 105, 0.02);
+            --row-hover: rgba(15, 23, 42, 0.04);
         }
 
         body {
@@ -154,7 +174,8 @@
                 <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-3 px-1">
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Active ISO:</span>
-                        <span class="text-xs font-mono text-cyan-400/80" x-text="files.active_iso || 'OFFLINE'"></span>
+                        <span class="text-xs font-mono font-bold" style="color: var(--status-monitoring)"
+                            x-text="files.active_iso || 'OFFLINE'"></span>
                     </div>
                 </div>
             </div>
@@ -180,11 +201,26 @@
                 </button>
 
 
-                <div
-                    class="flex items-center gap-3 premium-glass px-6 py-2.5 rounded-2xl border-l-[3px] border-emerald-500 shadow-emerald-500/10">
-                    <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_#10b981] animate-pulse"></div>
-                    <span class="text-emerald-400 font-bold tracking-wider text-xs uppercase">System Engine Live</span>
+                <div class="flex items-center gap-3 premium-glass px-6 py-2.5 rounded-2xl border-l-[3px] shadow-sm"
+                    style="border-color: var(--status-live); background: var(--status-live-bg)">
+                    <div class="w-1.5 h-1.5 rounded-full animate-pulse"
+                        style="background: var(--status-live); box-shadow: 0 0 10px var(--status-live)"></div>
+                    <span class="font-bold tracking-wider text-xs uppercase" style="color: var(--status-live)">System
+                        Engine Live</span>
                 </div>
+
+                <!-- Netdata Monitoring Link -->
+                <a :href="'http://' + window.location.hostname + ':19999'" target="_blank"
+                    class="premium-glass px-4 py-2.5 rounded-2xl border-none hover:scale-110 transition-transform group relative flex items-center gap-2"
+                    title="Monitoring Netdata">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor" style="color: var(--status-monitoring)">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span class="text-[10px] font-bold uppercase tracking-widest transition-colors"
+                        style="color: var(--status-monitoring)">Monitoring</span>
+                </a>
             </div>
         </nav>
 
@@ -265,7 +301,8 @@
                                 components to RAM Disk.</p>
                         </div>
                         <button @click="factoryReset()"
-                            class="px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[8px] font-bold uppercase tracking-widest hover:bg-red-500/20 transition-all flex items-center gap-2">
+                            class="px-3 py-1.5 rounded-lg text-[8px] font-bold uppercase tracking-widest transition-all flex items-center gap-2"
+                            style="background: var(--accent-soft); border: 1px solid var(--border-subtle); color: var(--status-error)">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -296,7 +333,8 @@
                         </template>
                         <template x-if="isUploading">
                             <div class="text-center w-full px-10 space-y-3">
-                                <div class="relative h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                                <div class="relative h-1 w-full rounded-full overflow-hidden"
+                                    style="background: var(--track-bg)">
                                     <div class="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-300"
                                         :style="'width: ' + uploadPercent + '%'"></div>
                                 </div>
@@ -373,8 +411,8 @@
                                         Protocol</span>
                                     <span class="text-[11px] font-mono font-bold text-main">Port 69</span>
                                 </div>
-                                <div
-                                    class="w-8 h-8 rounded-xl bg-slate-900/10 flex items-center justify-center text-emerald-500">
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center"
+                                    style="background: var(--accent-soft); color: var(--status-live)">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -472,12 +510,15 @@
             x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
             x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-xl" x-cloak>
+            class="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-xl"
+            style="background: var(--modal-overlay)" x-cloak>
             <div class="premium-glass w-full max-w-6xl h-[85vh] flex flex-col rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden"
                 @click.away="showFullLogs = false">
-                <div class="px-8 py-6 border-b border-white/5 flex justify-between items-center bg-white/[0.03]">
+                <div class="px-8 py-6 border-b border-white/5 flex justify-between items-center"
+                    style="background: var(--bg-header)">
                     <div class="flex items-center gap-4">
-                        <div class="w-3 h-3 rounded-full bg-cyan-400 shadow-[0_0_15px_#22d3ee] animate-pulse"></div>
+                        <div class="w-3 h-3 rounded-full shadow-[0_0_15px_#22d3ee] animate-pulse"
+                            style="background: var(--status-monitoring)"></div>
                         <div>
                             <h2 class="text-xl font-black uppercase tracking-widest text-main">Central Audit Logs</h2>
                             <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-1">Full System
@@ -495,7 +536,7 @@
                     </button>
                 </div>
 
-                <div class="flex-grow overflow-auto bg-slate-950/40 p-8 custom-scrollbar">
+                <div class="flex-grow overflow-auto p-8 custom-scrollbar" style="background: var(--bg-surface)">
                     <table class="w-full text-left font-mono text-xs border-separate border-spacing-y-2">
                         <thead>
                             <tr class="text-slate-500 uppercase text-[9px] font-black tracking-widest">
@@ -509,12 +550,12 @@
                         </thead>
                         <tbody>
                             <template x-for="log in logs">
-                                <tr
-                                    class="bg-white/[0.02] hover:bg-white/[0.05] transition-all group rounded-xl overflow-hidden">
+                                <tr class="transition-all group rounded-xl overflow-hidden"
+                                    :class="darkMode ? 'bg-white/[0.02] hover:bg-white/[0.05]' : 'bg-slate-900/[0.02] hover:bg-slate-900/[0.05]'">
                                     <td class="px-4 py-4 rounded-l-xl text-slate-400" x-text="log.time"></td>
                                     <td class="px-4 py-4 text-cyan-400 font-bold" x-text="log.ip"></td>
-                                    <td class="px-4 py-4"><span
-                                            class="px-2 py-0.5 bg-slate-800 rounded text-[9px] font-bold"
+                                    <td class="px-4 py-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold"
+                                            :class="darkMode ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-600'"
                                             x-text="log.method"></span></td>
                                     <td class="px-4 py-4">
                                         <span class="px-2 py-1 rounded-lg text-[10px] font-black"
@@ -529,10 +570,10 @@
                         </tbody>
                     </table>
                 </div>
-                <div
-                    class="px-8 py-4 bg-white/[0.03] border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest">
+                <div class="px-8 py-4 border-t border-white/5 flex justify-between items-center text-[9px] font-black text-slate-600 uppercase tracking-widest"
+                    style="background: var(--bg-header)">
                     <span>Showing last 50 transactions</span>
-                    <span class="text-emerald-500 animate-pulse">● System Synced</span>
+                    <span class="animate-pulse" style="color: var(--status-live)">● System Synced</span>
                 </div>
             </div>
         </div>
@@ -582,13 +623,13 @@
 
             <div class="mt-8 text-center">
                 <a :href="'http://' + window.location.hostname + ':19999'" target="_blank"
-                    class="inline-flex items-center gap-2 text-[10px] text-cyan-400/60 hover:text-cyan-400 font-bold uppercase tracking-[0.2em] transition-all">
+                    class="inline-flex items-center gap-2 text-[10px] text-cyan-400/80 hover:text-cyan-400 font-bold uppercase tracking-[0.2em] transition-all bg-cyan-400/5 px-4 py-2 rounded-xl border border-cyan-400/10 hover:border-cyan-400/30">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    Open Server Health Monitor
+                    Monitoring Netdata
                 </a>
             </div>
 
