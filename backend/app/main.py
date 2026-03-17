@@ -29,6 +29,7 @@ TFTP_BOOT = os.getenv("TFTP_BOOT", "/var/lib/tftpboot")
 METADATA_FILE = os.path.join(UPLOAD_DIR, "iso_metadata.json")
 CONFIG_FILE = os.path.join(UPLOAD_DIR, "config.json")
 APP_PASSWORD = os.getenv("APP_PASSWORD", "admin123")
+DNSMASQ_CONF = os.path.join(os.getenv("APP_DIR", "/app"), "scripts", "dnsmasq.conf")
  
 # Volatile session statistics
 MAX_CLIENTS_SESSION = 0
@@ -99,7 +100,44 @@ def save_config(config):
     import json
     with open(CONFIG_FILE, "w") as f:
         json.dump(config, f)
-    update_ipxe_files(config.get("server_ip", "127.0.0.1"))
+    ip = config.get("server_ip", "127.0.0.1")
+    update_ipxe_files(ip)
+    update_dhcp_listen_address(ip)
+
+def update_dhcp_listen_address(ip):
+    # Ensure DNSMASQ_CONF is defined at module level beforehand, which we'll move up
+    if not os.path.exists(DNSMASQ_CONF):
+        return
+    try:
+        with open(DNSMASQ_CONF, "r") as f:
+            lines = f.readlines()
+        new_lines = []
+        found = False
+        has_bind = False
+        for line in lines:
+            if line.startswith("listen-address="):
+                new_lines.append(f"listen-address={ip}\n")
+                found = True
+            elif line.strip() == "bind-interfaces":
+                new_lines.append(line)
+                has_bind = True
+            else:
+                new_lines.append(line)
+        if not found:
+            new_lines.append(f"listen-address={ip}\n")
+        if not has_bind:
+            new_lines.append("bind-interfaces\n")
+        with open(DNSMASQ_CONF, "w") as f:
+            f.writelines(new_lines)
+            
+        # Only restart if there's an actual DHCP range configured
+        has_range = any(line.startswith("dhcp-range=") for line in new_lines)
+        if has_range:
+            subprocess.run(["docker", "restart", "pxe-dhcp"], capture_output=True, check=False)
+        else:
+             subprocess.run(["docker", "stop", "pxe-dhcp"], capture_output=True, check=False)
+    except Exception as e:
+        print(f"Error updating DHCP listen address: {e}")
 
 def update_ipxe_files(ip):
     content = f"#!ipxe\n\ndhcp || reboot\n\nset boot_server ${{next-server}}\n\nkernel http://${{boot_server}}/pxe/vmlinuz initrd=initrd.img root=/dev/ram0 boot=live fetch=http://${{boot_server}}/pxe/filesystem.squashfs quiet splash vt.global_cursor_default=0\ninitrd http://${{boot_server}}/pxe/initrd.img\nboot\n"
@@ -126,7 +164,9 @@ os.makedirs(TFTP_BOOT, exist_ok=True)
 @app.on_event("startup")
 async def startup_event():
     config = get_config()
-    update_ipxe_files(config.get("server_ip"))
+    ip = config.get("server_ip", "127.0.0.1")
+    update_ipxe_files(ip)
+    update_dhcp_listen_address(ip)
     
     print("Startup sequence: Checking for boot components...")
     files_map = {
@@ -387,6 +427,12 @@ async def factory_reset(token: str = Depends(verify_token)):
         except Exception as e:
             print(f"Failed to clear nginx logs: {e}")
             
+        try:
+            # Enforce DHCP stop on reset
+            subprocess.run(["docker", "stop", "pxe-dhcp"], capture_output=True, check=False)
+        except:
+            pass
+            
         return {"status": "success", "message": "Full system wipe complete. All folders and logs cleared."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Reset failed: {str(e)}")
@@ -466,5 +512,189 @@ async def update_config(config: dict, token: str = Depends(verify_token)):
 @app.get("/api/verify-auth")
 async def verify_auth(token: str = Depends(verify_token)):
     return {"status": "success", "message": "Authenticated"}
+
+# --- DHCP Server Management ---
+class DHCPConfig(BaseModel):
+    start_ip: str
+    end_ip: str
+    dns_ip: str
+
+DHCP_JSON_FILE = os.path.join(os.getenv("APP_DIR", "/app"), "scripts", "dhcp.json")
+
+def read_dhcp_config():
+    config = {"start_ip": "", "end_ip": "", "dns_ip": ""}
+    if os.path.exists(DHCP_JSON_FILE):
+        try:
+            with open(DHCP_JSON_FILE, "r") as f:
+                import json
+                saved = json.load(f)
+                config.update(saved)
+        except Exception as e:
+            print(f"Error reading dhcp.json: {e}")
+    else:
+        # Fallback to parse dnsmasq.conf if dhcp.json doesn't exist yet
+        if not os.path.exists(DNSMASQ_CONF):
+            return config
+        try:
+            with open(DNSMASQ_CONF, "r") as f:
+                lines = f.readlines()
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("dhcp-range="):
+                        parts = line.split("=")[1].split(",")
+                        if len(parts) >= 2:
+                            config["start_ip"] = parts[0].strip()
+                            config["end_ip"] = parts[1].strip()
+                    elif line.startswith("address=/cbtsrv.snpmb.id/"):
+                        config["dns_ip"] = line.split("/")[-1].strip()
+        except:
+            pass
+    return config
+
+@app.get("/api/dhcp")
+async def get_dhcp_config(token: str = Depends(verify_token)):
+    return JSONResponse(read_dhcp_config())
+
+@app.post("/api/dhcp")
+async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token)):
+    # Basic IP Validation
+    ip_pattern = re.compile(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+    if not ip_pattern.match(config.start_ip) or not ip_pattern.match(config.end_ip):
+        raise HTTPException(status_code=400, detail="Invalid DHCP range IP Address format")
+    if not ip_pattern.match(config.dns_ip):
+         raise HTTPException(status_code=400, detail="Invalid DNS Static IP Address format")
+
+    try:
+        import json
+        with open(DHCP_JSON_FILE, "w") as f:
+            json.dump({"start_ip": config.start_ip, "end_ip": config.end_ip, "dns_ip": config.dns_ip}, f)
+
+        lines = []
+        if os.path.exists(DNSMASQ_CONF):
+            with open(DNSMASQ_CONF, "r") as f:
+                lines = f.readlines()
+        else:
+            # Default template if file missing
+            lines = [
+                "port=0\n",
+                "dhcp-option=66,192.168.1.10\n",
+                "dhcp-option=67,bootx64.efi\n",
+                "log-dhcp\n"
+            ]
+
+        # Ensure listen-address is set in dnsmasq.conf (get currently active IP)
+        current_ip = get_config().get("server_ip", "127.0.0.1")
+        has_listen = False
+        has_bind = False
+
+        # Update or add attributes
+        new_lines = []
+        range_found = False
+        dns_found = False
+        
+        for line in lines:
+            if line.startswith("dhcp-range="):
+                new_lines.append(f"dhcp-range={config.start_ip},{config.end_ip},12h\n")
+                range_found = True
+            elif line.startswith("address=/cbtsrv.snpmb.id/"):
+                new_lines.append(f"address=/cbtsrv.snpmb.id/{config.dns_ip}\n")
+                dns_found = True
+            elif line.startswith("listen-address="):
+                new_lines.append(f"listen-address={current_ip}\n")
+                has_listen = True
+            elif line.strip() == "bind-interfaces":
+                new_lines.append(line)
+                has_bind = True
+            else:
+                new_lines.append(line)
+                
+        if not range_found:
+            new_lines.append(f"dhcp-range={config.start_ip},{config.end_ip},12h\n")
+        if not dns_found and config.dns_ip:
+             new_lines.append(f"address=/cbtsrv.snpmb.id/{config.dns_ip}\n")
+        if not has_listen:
+            new_lines.append(f"listen-address={current_ip}\n")
+        if not has_bind:
+            new_lines.append("bind-interfaces\n")
+             
+        with open(DNSMASQ_CONF, "w") as f:
+            f.writelines(new_lines)
+            
+        # Restart container automatically
+        res = subprocess.run(["docker", "start", "pxe-dhcp"], capture_output=True, check=False)
+        if res.returncode != 0:
+             # Container likely doesn't exist, try recreating using raw docker run with dynamically mapped host directory
+             inspect_res = subprocess.run(["docker", "inspect", "pxe-orchestrator"], capture_output=True, text=True)
+             if inspect_res.returncode == 0:
+                 import json
+                 data = json.loads(inspect_res.stdout)
+                 host_scripts_dir = None
+                 for m in data[0].get("Mounts", []):
+                     if m["Destination"] == "/app/scripts":
+                         host_scripts_dir = m["Source"]
+                         break
+                 
+                 if host_scripts_dir:
+                     dnsmasq_conf_host = f"{host_scripts_dir}/dnsmasq.conf"
+                     subprocess.run([
+                         "docker", "run", "-d",
+                         "--name", "pxe-dhcp",
+                         "--network", "host",
+                         "--cap-add", "NET_ADMIN",
+                         "-v", f"{dnsmasq_conf_host}:/etc/dnsmasq.conf:ro",
+                         "alpine:latest",
+                         "/bin/sh", "-c", "apk add --no-cache dnsmasq && dnsmasq -k"
+                     ], capture_output=True, check=False)
+                         
+             print(f"Warning: Failed to start pxe-dhcp directly. Fallback triggered.")
+        subprocess.run(["docker", "restart", "pxe-dhcp"], capture_output=True, check=False)
+        
+        return {"status": "success", "message": "DHCP configuration saved and service started."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dhcp/status")
+async def get_dhcp_status(token: str = Depends(verify_token)):
+    if not os.path.exists(DHCP_JSON_FILE):
+        return {"status": "unconfigured"}
+
+    try:
+        # Check docker container format
+        res = subprocess.run(["docker", "inspect", "-f", "{{.State.Status}}", "pxe-dhcp"], capture_output=True, text=True)
+        if res.returncode == 0:
+            return {"status": res.stdout.strip()}
+        return {"status": "not_found"}
+        return {"status": "not_found"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+class DHCPControl(BaseModel):
+    action: str # start, stop, restart
+
+@app.post("/api/dhcp/control")
+async def control_dhcp_service(data: DHCPControl, token: str = Depends(verify_token)):
+    if data.action not in ["start", "stop", "restart"]:
+         raise HTTPException(status_code=400, detail="Invalid action")
+         
+    try:
+        res = subprocess.run(["docker", data.action, "pxe-dhcp"], capture_output=True, text=True)
+        if res.returncode == 0:
+             return {"status": "success", "message": f"Service {data.action}ed successfully"}
+        else:
+             raise HTTPException(status_code=500, detail=res.stderr.strip())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/dhcp/logs")
+async def get_dhcp_logs(token: str = Depends(verify_token)):
+    try:
+         res = subprocess.run(["docker", "logs", "--tail", "50", "pxe-dhcp"], capture_output=True, text=True)
+         # Dnsmasq outputs to stderr and stdout
+         logs = res.stderr + "\n" + res.stdout
+         lines = [line for line in logs.split('\n') if line.strip()]
+         return {"logs": lines[-50:]}
+    except Exception as e:
+         return {"logs": [f"Error fetching logs: {str(e)}"]}
+
 
 app.mount("/", StaticFiles(directory="/app/frontend", html=True), name="frontend")

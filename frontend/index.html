@@ -158,74 +158,94 @@
     </style>
 </head>
 
-<body class="h-screen overflow-hidden" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
-    <div class="h-full flex flex-col container mx-auto px-6 py-8 max-w-7xl" x-show="isAuthenticated" x-cloak>
+<body class="h-screen overflow-hidden flex" x-data="pxeManager()" x-init="init()" :class="{ 'light-mode': !darkMode }">
+    <!-- SIDEBAR -->
+    <aside class="w-64 flex-shrink-0 flex flex-col h-full premium-glass border-r border-white/5 relative z-20" x-show="isAuthenticated" x-cloak>
+        <div class="px-6 py-8 flex items-center gap-3 border-b border-white/5 bg-white/[0.02]">
+            <img src="logo.png" alt="Logo" class="h-8 w-auto">
+            <div>
+                <h1 class="text-sm font-black tracking-widest uppercase">PXE Server</h1>
+                <div class="text-[9px] text-cyan-400 font-bold uppercase tracking-widest mt-0.5">Control Panel 2.0</div>
+            </div>
+        </div>
 
-        <!-- TOP NAVIGATION -->
-        <nav class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6 flex-shrink-0">
-            <div class="relative">
-                <div class="absolute -top-6 -left-6 w-24 h-24 bg-blue-500/10 rounded-full blur-3xl text-indigo-500">
+        <nav class="flex-grow py-6 px-4 space-y-2">
+            <button @click="currentTab = 'dashboard'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-[11px] font-bold uppercase tracking-widest"
+                :class="currentTab === 'dashboard' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(0,242,255,0.05)]' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+                Dashboard
+            </button>
+            <button @click="currentTab = 'dhcp'; fetchDHCPConfig(); fetchDHCPStatus(); fetchDHCPLogs();" 
+                class="w-full flex justify-between items-center px-4 py-3 rounded-xl transition-all text-[11px] font-bold uppercase tracking-widest"
+                :class="currentTab === 'dhcp' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(0,242,255,0.05)]' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+                <div class="flex items-center gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    DHCP Server
                 </div>
-                <h1 class="text-3xl font-bold tracking-tighter flex items-center gap-4">
-                    <img src="logo.png" alt="SNBT Logo" class="h-12 w-auto">
-                    UTBK PXE SERVER <span class="text-cyan-400 font-light ml-2 text-2xl">2.0</span>
-                </h1>
+                <div class="w-1.5 h-1.5 rounded-full" :class="dhcpStatus === 'running' ? 'bg-emerald-400 shadow-[0_0_5px_#10b981]' : (dhcpStatus === 'not_found' ? 'bg-slate-500' : 'bg-red-500 shadow-[0_0_5px_#ef4444]')"></div>
+            </button>
+            <button @click="currentTab = 'monitoring'" 
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-[11px] font-bold uppercase tracking-widest"
+                :class="currentTab === 'monitoring' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(0,242,255,0.05)]' : 'text-slate-400 hover:text-white hover:bg-white/5'">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Monitoring
+            </button>
+        </nav>
 
-                <div class="flex flex-col md:flex-row items-start md:items-center gap-4 mt-3 px-1">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Active ISO:</span>
-                        <span class="text-xs font-mono font-bold" style="color: var(--status-monitoring)"
-                            x-text="files.active_iso || 'OFFLINE'"></span>
-                    </div>
-                </div>
+        <div class="p-6 border-t border-white/5 mb-4">
+             <div class="flex items-center gap-3 premium-glass px-4 py-2.5 rounded-xl border-l-[3px] shadow-sm mb-4"
+                style="border-color: var(--status-live); background: var(--status-live-bg)">
+                <div class="w-1.5 h-1.5 rounded-full animate-pulse"
+                    style="background: var(--status-live); box-shadow: 0 0 10px var(--status-live)"></div>
+                <span class="font-bold tracking-wider text-[9px] uppercase" style="color: var(--status-live)">System Live</span>
+            </div>
+            <button @click="logout()"
+                class="w-full text-center text-[10px] text-slate-500 hover:text-red-400 uppercase tracking-widest font-black transition-colors">
+                Secure Logout
+            </button>
+        </div>
+    </aside>
+
+    <div class="flex-grow flex flex-col h-full bg-body overflow-y-auto custom-scrollbar relative" x-show="isAuthenticated" x-cloak>
+        <div class="container mx-auto px-10 py-8 max-w-7xl flex flex-col min-h-full">
+
+        <!-- TOP NAVIGATION HEADER FOR MAIN AREA -->
+        <header class="flex justify-between items-center mb-10 flex-shrink-0" x-show="currentTab !== 'monitoring'">
+            <div>
+                <h2 class="text-3xl font-bold tracking-tighter" x-text="currentTab === 'dashboard' ? 'ORCHESTRATION DASHBOARD' : 'DHCP SERVER SETUP'"></h2>
+                <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-[0.2em] font-black" x-text="currentTab === 'dashboard' ? 'UTBK Automated Provisioning System' : 'Network Assignment Configuration'"></p>
             </div>
 
             <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 px-4 py-2 bg-slate-900/40 rounded-xl border border-white/5" x-show="currentTab === 'dashboard'">
+                     <span class="text-[9px] uppercase tracking-widest text-slate-500 font-bold">Active ISO:</span>
+                     <span class="text-[10px] font-mono font-bold text-cyan-400" x-text="files.active_iso || 'OFFLINE'"></span>
+                </div>
                 <!-- Theme Toggle -->
-                <button @click="toggleTheme()"
-                    class="premium-glass p-3 rounded-2xl border-none hover:scale-110 transition-transform">
+                <button @click="toggleTheme()" class="premium-glass p-3 rounded-xl border-none hover:scale-110 transition-transform bg-white/[0.02]">
                     <template x-if="darkMode">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707.707M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707.707M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </template>
                     <template x-if="!darkMode">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-600" fill="none"
-                            viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                         </svg>
                     </template>
                 </button>
-
-
-                <div class="flex items-center gap-3 premium-glass px-6 py-2.5 rounded-2xl border-l-[3px] shadow-sm"
-                    style="border-color: var(--status-live); background: var(--status-live-bg)">
-                    <div class="w-1.5 h-1.5 rounded-full animate-pulse"
-                        style="background: var(--status-live); box-shadow: 0 0 10px var(--status-live)"></div>
-                    <span class="font-bold tracking-wider text-xs uppercase" style="color: var(--status-live)">System
-                        Engine Live</span>
-                </div>
-
-                <!-- Netdata Monitoring Link -->
-                <a :href="'http://' + window.location.hostname + ':19999'" target="_blank"
-                    class="premium-glass px-4 py-2.5 rounded-2xl border-none hover:scale-110 transition-transform group relative flex items-center gap-2"
-                    title="Monitoring Netdata">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                        stroke="currentColor" style="color: var(--status-monitoring)">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    <span class="text-[10px] font-bold uppercase tracking-widest transition-colors"
-                        style="color: var(--status-monitoring)">Monitoring</span>
-                </a>
             </div>
-        </nav>
+        </header>
 
-        <!-- DASHBOARD GRID -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 flex-grow min-h-0">
+        <!-- DASHBOARD TAB -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 flex-grow min-h-0" x-show="currentTab === 'dashboard'" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0">
 
             <!-- COLUMN 1: SYSTEM MONITOR & CONFIG (3 COLS) -->
             <div class="lg:col-span-3 flex flex-col h-full space-y-4">
@@ -413,27 +433,21 @@
                                 </div>
                                 <div class="w-8 h-8 rounded-xl flex items-center justify-center"
                                     style="background: var(--accent-soft); color: var(--status-live)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 12h14M5 12l4-4m-4 4l4 4" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                                     </svg>
                                 </div>
                             </div>
-                            <!-- HTTP -->
-                            <div
-                                class="bg-white/[0.02] border border-subtle rounded-2xl p-3 flex items-center justify-between group/service hover:border-emerald-500/40 transition-all shadow-sm">
+                            <!-- DHCP Server Sub-status -->
+                            <div class="bg-white/[0.02] border border-subtle rounded-2xl p-3 flex items-center justify-between group/service hover:border-emerald-500/40 transition-all shadow-sm">
                                 <div class="flex flex-col">
-                                    <span class="text-[7px] text-slate-500 uppercase font-bold mb-0.5">HTTP
-                                        Server</span>
-                                    <span class="text-[11px] font-mono font-bold text-main">Port 80</span>
+                                    <span class="text-[7px] text-slate-500 uppercase font-bold mb-0.5">DHCP Service</span>
+                                    <span class="text-[11px] font-mono font-bold text-main">Port 67</span>
                                 </div>
-                                <div
-                                    class="w-8 h-8 rounded-xl bg-slate-900/10 flex items-center justify-center text-emerald-500">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                <div class="w-8 h-8 rounded-xl flex items-center justify-center transition-all" 
+                                     :class="dhcpStatus === 'running' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                                     </svg>
                                 </div>
                             </div>
@@ -578,15 +592,157 @@
             </div>
         </div>
 
-        <footer class="mt-20 pt-10 border-t border-subtle flex flex-col items-center gap-4">
+        <!-- DHCP SERVER TAB -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8 flex-grow" x-show="currentTab === 'dhcp'" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
+             <!-- Column 1: Config Form -->
+             <div class="lg:col-span-5 flex flex-col space-y-6">
+                <div class="premium-glass rounded-[2rem] p-6 border border-white/5">
+                    <div class="flex justify-between items-center pb-5 mb-5 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-cyan-500/10 text-cyan-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-bold uppercase tracking-widest text-main">Service Control</h2>
+                                <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest">dnsmasq container status</p>
+                            </div>
+                        </div>
+                        <div class="px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-widest flex items-center gap-2 bg-white/[0.02]"
+                             :class="dhcpStatus === 'unconfigured' ? 'text-slate-400 border-slate-500/20' : (dhcpStatus === 'running' ? 'text-emerald-400 border-emerald-500/20' : 'text-red-400 border-red-500/20')">
+                             <div class="w-2 h-2 rounded-full shadow-sm" :class="dhcpStatus === 'unconfigured' ? 'bg-slate-500' : (dhcpStatus === 'running' ? 'bg-emerald-400 animate-pulse shadow-emerald-500/50' : 'bg-red-500 shadow-red-500/50')"></div>
+                             <span x-text="dhcpStatus === 'unconfigured' ? 'Not Configured' : (dhcpStatus === 'running' ? 'Listening' : (dhcpStatus === 'not_found' ? 'Missing' : 'Stopped'))"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between" x-show="dhcpStatus !== 'unconfigured'">
+                        <div class="flex flex-col">
+                             <span class="text-[8px] text-slate-500 uppercase font-black tracking-widest leading-relaxed">DHCP Range</span>
+                             <span class="text-xs font-mono font-bold text-main" x-text="savedDhcpConfig.start_ip + ' - ' + savedDhcpConfig.end_ip"></span>
+                        </div>
+                        <div class="flex flex-col text-right">
+                             <span class="text-[8px] text-slate-500 uppercase font-black tracking-widest leading-relaxed">cbtsrv.snpmb.id</span>
+                             <span class="text-xs font-mono font-bold text-cyan-400" x-text="savedDhcpConfig.dns_ip || '---'"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-5 p-4 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <span class="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Bound Interface</span>
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 01-2 2zm0 0a2 2 0 002 2v4a2 2 0 002 2h6a2 2 0 002-2v-4a2 2 0 002-2" />
+                                </svg>
+                                <span class="text-xs font-mono font-bold text-main" x-text="networks.find(n => n.ip === config.server_ip)?.iface || 'Unknown'"></span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col text-right">
+                             <span class="text-[8px] text-slate-500 uppercase font-black tracking-widest mb-1">Active IP</span>
+                             <span class="text-xs font-mono font-bold text-cyan-400" x-text="config.server_ip || '---'"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-4">
+                        <button @click="controlDHCP('start')" title="Start Service" :disabled="dhcpWorking || dhcpStatus === 'running' || dhcpStatus === 'unconfigured' || dhcpStatus === 'not_found'" class="flex-1 bg-white/[0.03] hover:bg-emerald-500/10 border border-white/5 hover:border-emerald-500/30 text-slate-400 hover:text-emerald-400 rounded-xl py-3 flex justify-center items-center gap-2 transition-all disabled:opacity-50">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span class="text-[9px] uppercase font-black tracking-widest">Start</span>
+                        </button>
+                        <button @click="controlDHCP('stop')" title="Stop Service" :disabled="dhcpWorking || dhcpStatus !== 'running' || dhcpStatus === 'not_found'" class="flex-1 bg-white/[0.03] hover:bg-red-500/10 border border-white/5 hover:border-red-500/30 text-slate-400 hover:text-red-400 rounded-xl py-3 flex justify-center items-center gap-2 transition-all disabled:opacity-50">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" /></svg>
+                             <span class="text-[9px] uppercase font-black tracking-widest">Stop</span>
+                        </button>
+                        <button @click="controlDHCP('restart')" title="Restart Service" :disabled="dhcpWorking || dhcpStatus === 'unconfigured' || dhcpStatus === 'not_found'" class="flex-1 bg-white/[0.03] hover:bg-amber-500/10 border border-white/5 hover:border-amber-500/30 text-slate-400 hover:text-amber-400 rounded-xl py-3 flex justify-center items-center gap-2 transition-all disabled:opacity-50">
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                             <span class="text-[9px] uppercase font-black tracking-widest">Restart</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="premium-glass rounded-[2rem] p-6 border border-white/5 flex-grow font-mono">
+                     <h2 class="text-xs font-black uppercase tracking-widest text-main mb-6 flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 bg-amber-400 rounded-full shadow-[0_0_8px_#fbbf24]"></div>
+                        Address Configuration
+                     </h2>
+                     <form @submit.prevent="saveDHCPConfig()" class="space-y-6">
+                         
+                         <div class="space-y-4 p-5 rounded-2xl bg-white/[0.01] border border-white/5 border-dashed">
+                              <h3 class="text-[9px] uppercase tracking-widest text-emerald-400 font-bold">Dynamic DHCP Assignment</h3>
+                              <p class="text-[8px] text-slate-500 mb-4 font-sans leading-relaxed">Specify the range of IPs the PXE Server will hand out to client machines booting from the network.</p>
+                              
+                              <div>
+                                  <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-bold mb-1.5">Start IP Address</label>
+                                  <input type="text" x-model="dhcpConfig.start_ip" placeholder="Target e.g. 192.168.1.100" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-500/50 transition-colors" required>
+                              </div>
+                              <div>
+                                  <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-bold mb-1.5">End IP Address</label>
+                                  <input type="text" x-model="dhcpConfig.end_ip" placeholder="Target e.g. 192.168.1.150" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-cyan-500/50 transition-colors" required>
+                              </div>
+                         </div>
+
+                         <div class="space-y-4 p-5 rounded-2xl bg-white/[0.01] border border-white/5 border-dashed">
+                              <h3 class="text-[9px] uppercase tracking-widest text-indigo-400 font-bold">Static DNS Override</h3>
+                              <p class="text-[8px] text-slate-500 mb-4 font-sans leading-relaxed">When computers ask for <span class="text-white px-1">cbtsrv.snpmb.id</span>, they will be given the IP mapped below.</p>
+                              
+                              <div>
+                                  <label class="block text-[9px] uppercase tracking-widest text-slate-400 font-bold mb-1.5">CBT Server Destination IP</label>
+                                  <input type="text" x-model="dhcpConfig.dns_ip" placeholder="Target e.g. 192.168.1.250" class="w-full bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-3 text-xs text-indigo-400 focus:outline-none focus:border-indigo-500/50 transition-colors" required>
+                              </div>
+                         </div>
+                         
+                         <button type="submit" :disabled="dhcpWorking" class="w-full py-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg flex justify-center items-center gap-2"
+                            :class="dhcpWorking ? 'bg-slate-800 text-slate-500' : 'bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white shadow-indigo-500/20 active:scale-95'">
+                              <svg x-show="!dhcpWorking" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+                              <svg x-show="dhcpWorking" class="animate-spin h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              <span x-text="dhcpWorking ? 'Applying Configuration...' : 'Save & Hot Reload'"></span>
+                         </button>
+                     </form>
+                </div>
+             </div>
+
+             <!-- Column 2: Live Logs -->
+             <div class="lg:col-span-7 flex flex-col h-full min-h-[500px]">
+                 <div class="premium-glass rounded-[2rem] overflow-hidden flex flex-col h-full border border-white/5 bg-[#050B14]">
+                     <div class="px-5 py-4 border-b border-white/5 flex items-center justify-between" style="background: var(--bg-header)">
+                         <div class="flex items-center gap-3">
+                             <div class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_#22d3ee]"></div>
+                             <div>
+                                 <h3 class="text-[10px] font-black uppercase tracking-widest text-main">DHCP Daemon Stream</h3>
+                                 <p class="text-[8px] text-slate-500 uppercase tracking-widest font-black mt-0.5">Live Output feed</p>
+                             </div>
+                         </div>
+                     </div>
+                     <div class="flex-grow p-5 overflow-y-auto font-mono text-[10px] custom-scrollbar" style="background: rgba(0,0,0,0.6)">
+                         <div class="text-slate-400 space-y-1">
+                             <template x-for="logLine in dhcpLogs">
+                                 <div class="hover:bg-white/[0.03] px-2 py-0.5 rounded transition-colors break-words">
+                                      <span class="opacity-50 select-none mr-2">&gt;</span>
+                                      <span x-text="logLine" :class="logLine.includes('Error') || logLine.includes('failed') ? 'text-red-400' : (logLine.includes('DHCP') ? 'text-emerald-400' : 'text-slate-300')"></span>
+                                 </div>
+                             </template>
+                             <div x-show="dhcpLogs.length === 0" class="text-slate-600 italic mt-10 text-center opacity-50">Polling logs...</div>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+        </div>
+
+        <!-- MONITORING TAB (NETDATA EMBED) -->
+        <div class="flex-grow h-full w-full rounded-2xl overflow-hidden border border-white/10 relative" x-show="currentTab === 'monitoring'" x-transition:enter="transition ease-out duration-300 transform" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-cloak>
+             <!-- Iframe pointing to netdata -->
+             <iframe :src="'http://' + window.location.hostname + ':19999'" class="w-full h-full border-none bg-slate-900" title="Netdata Monitoring"></iframe>
+        </div>
+
+
+        <footer class="mt-auto pt-6 pb-4 border-t border-subtle flex justify-between items-center" x-show="currentTab !== 'monitoring'">
             <div class="flex items-center gap-3">
-                <img src="logo.png" alt="Logo" class="h-6 w-auto grayscale opacity-50">
-                <span class="text-[10px] text-muted font-medium tracking-[0.3em] uppercase">UTBK PXE Server</span>
+                <img src="logo.png" alt="Logo" class="h-5 w-auto grayscale opacity-30">
+                <span class="text-[9px] text-muted font-black tracking-[0.3em] uppercase">Built for Performance</span>
             </div>
-            <p class="text-[10px] text-muted/40 uppercase tracking-widest">Copyright &copy; 2026 Arry A - Universitas
-                Padjadjaran</p>
+            <p class="text-[9px] text-muted/40 uppercase tracking-widest font-bold">Copyright &copy; 2026 Arry A</p>
         </footer>
 
+        </div>
     </div>
 
     <!-- PREMIUM LOGIN OVERLAY -->
@@ -660,7 +816,12 @@
                 isAuthenticated: false,
                 authToken: localStorage.getItem('auth_token') || '',
                 loginPass: '',
-                authError: '',
+                currentTab: 'dashboard',
+                dhcpConfig: { start_ip: '', end_ip: '', dns_ip: '' },
+                savedDhcpConfig: { start_ip: '', end_ip: '', dns_ip: '' },
+                dhcpLogs: [],
+                dhcpStatus: 'not_found',
+                dhcpWorking: false,
 
                 async apiFetch(url, options = {}) {
                     const headers = {
@@ -729,10 +890,13 @@
                     this.fetchConfig();
                     this.fetchNetworks();
                     this.fetchLogs();
-                    setInterval(() => { if (this.isAuthenticated) this.fetchStats() }, 2000);
+                    this.fetchDHCPStatus();
+                    setInterval(() => { if (this.isAuthenticated && this.currentTab === 'dashboard') this.fetchStats() }, 2000);
                     setInterval(() => { if (this.isAuthenticated) this.fetchFiles() }, 5000);
-                    setInterval(() => { if (this.isAuthenticated) this.fetchLogs() }, 3000);
-                    setInterval(() => { if (this.isAuthenticated) this.fetchNetworks() }, 10000);
+                    setInterval(() => { if (this.isAuthenticated && this.currentTab === 'dashboard') this.fetchLogs() }, 3000);
+                    setInterval(() => { if (this.isAuthenticated && this.currentTab === 'dashboard') this.fetchNetworks() }, 10000);
+                    setInterval(() => { if (this.isAuthenticated && this.currentTab === 'dhcp') this.fetchDHCPLogs() }, 3000);
+                    setInterval(() => { if (this.isAuthenticated && (this.currentTab === 'dhcp' || this.currentTab === 'dashboard')) this.fetchDHCPStatus() }, 5000);
                 },
 
                 toggleTheme() {
@@ -789,6 +953,88 @@
                             this.editIP = false;
                         }
                     } catch (e) { alert('Failed to save IP'); }
+                },
+
+                // DHCP Functions
+                async fetchDHCPConfig() {
+                    try {
+                        const res = await this.apiFetch('/api/dhcp');
+                        const raw = await res.json();
+                        this.savedDhcpConfig = { ...raw };
+                        this.dhcpConfig = { ...raw };
+                        
+                        // Auto-populate default segments if empty
+                        if (!this.dhcpConfig.start_ip || !this.dhcpConfig.end_ip) {
+                             if (!this.config.server_ip || this.config.server_ip === '127.0.0.1') {
+                                 await this.fetchConfig();
+                             }
+                             if (this.config.server_ip && this.config.server_ip !== '127.0.0.1') {
+                                 const parts = this.config.server_ip.split('.');
+                                 if (parts.length === 4) {
+                                     const base = `${parts[0]}.${parts[1]}.${parts[2]}`;
+                                     if (!this.dhcpConfig.start_ip) this.dhcpConfig.start_ip = `${base}.10`;
+                                     if (!this.dhcpConfig.end_ip) this.dhcpConfig.end_ip = `${base}.254`;
+                                 }
+                             }
+                        }
+                    } catch (e) {}
+                },
+
+                async fetchDHCPStatus() {
+                    try {
+                        const res = await this.apiFetch('/api/dhcp/status');
+                        const data = await res.json();
+                        this.dhcpStatus = data.status;
+                    } catch (e) {}
+                },
+
+                async fetchDHCPLogs() {
+                    try {
+                        const res = await this.apiFetch('/api/dhcp/logs');
+                        const data = await res.json();
+                        this.dhcpLogs = data.logs;
+                    } catch (e) {}
+                },
+
+                async controlDHCP(action) {
+                    this.dhcpWorking = true;
+                    try {
+                        const res = await this.apiFetch('/api/dhcp/control', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) alert('Error: ' + data.detail);
+                        setTimeout(() => { this.fetchDHCPStatus(); this.fetchDHCPLogs(); }, 1500);
+                    } catch (e) { alert('Request failed'); }
+                    this.dhcpWorking = false;
+                },
+
+                async saveDHCPConfig() {
+                    // Primitive frontend regex validation logic matches backend
+                    const ipRe = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+                    if(!ipRe.test(this.dhcpConfig.start_ip) || !ipRe.test(this.dhcpConfig.end_ip) || !ipRe.test(this.dhcpConfig.dns_ip)) {
+                        alert("Format IPv4 Address tidak valid. Harap periksa kembali.");
+                        return;
+                    }
+
+                    this.dhcpWorking = true;
+                    try {
+                        const res = await this.apiFetch('/api/dhcp', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.dhcpConfig)
+                        });
+                        const data = await res.json();
+                        if(res.ok) {
+                            this.savedDhcpConfig = { ...this.dhcpConfig };
+                            setTimeout(() => { this.fetchDHCPStatus(); this.fetchDHCPLogs(); }, 2000);
+                        } else {
+                            alert('Network Validation Error: ' + data.detail);
+                        }
+                    } catch (e) { alert('Failed to save configuration.'); }
+                    this.dhcpWorking = false;
                 },
 
                 async factoryReset() {

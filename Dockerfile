@@ -9,7 +9,8 @@ RUN apk add --no-cache \
     iproute2 \
     curl \
     p7zip \
-    tzdata
+    tzdata \
+    docker-cli
 
 # iPXE UEFI setup
 RUN mkdir -p /tmp/ipxe && \
