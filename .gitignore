@@ -1,5 +1,6 @@
 # Local storage and configurations
 data-source/
+scripts/dhcp.json
 tftpboot/*.ipxe
 tftpboot/*.efi
 tftpboot/*.img
