@@ -576,7 +576,6 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
         else:
             # Default template if file missing
             lines = [
-                "port=0\n",
                 "dhcp-option=66,192.168.1.10\n",
                 "dhcp-option=67,bootx64.efi\n",
                 "log-dhcp\n"
