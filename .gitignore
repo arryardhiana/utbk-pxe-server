@@ -26,3 +26,4 @@ Thumbs.db
 # Docker logs
 *.log
 backend/app/__pycache__/main.cpython-311.pyc
+dnsmasq.conf

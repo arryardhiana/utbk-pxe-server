@@ -4,8 +4,11 @@ services:
     container_name: pxe-dhcp
     network_mode: host
     restart: "no"
+    environment:
+      - ENABLE_DNS=false
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./scripts/dnsmasq.conf:/etc/dnsmasq.conf:ro
-    command: /bin/sh -c "apk add --no-cache dnsmasq && dnsmasq -k"
+      - ./scripts/dnsmasq.conf.example:/etc/dnsmasq.conf.template:ro
+      - ./scripts/dhcp-entrypoint.sh:/dhcp-entrypoint.sh:ro
+    command: /bin/sh /dhcp-entrypoint.sh

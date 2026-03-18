@@ -518,11 +518,25 @@ class DHCPConfig(BaseModel):
     start_ip: str
     end_ip: str
     dns_ip: str
+    enable_dns: bool = False
 
 DHCP_JSON_FILE = os.path.join(os.getenv("APP_DIR", "/app"), "scripts", "dhcp.json")
 
 def read_dhcp_config():
-    config = {"start_ip": "", "end_ip": "", "dns_ip": ""}
+    config = {"start_ip": "", "end_ip": "", "dns_ip": "", "enable_dns": False}
+    
+    # Try to read ENABLE_DNS from docker-compose.dhcp.yml
+    compose_file = os.path.join(os.getenv("APP_DIR", "/app"), "docker-compose.dhcp.yml")
+    if os.path.exists(compose_file):
+        try:
+            with open(compose_file, "r") as f:
+                content = f.read()
+                if "ENABLE_DNS=true" in content:
+                    config["enable_dns"] = True
+                elif "ENABLE_DNS=false" in content:
+                    config["enable_dns"] = False
+        except Exception as e:
+            print(f"Error reading docker-compose.dhcp.yml: {e}")
     if os.path.exists(DHCP_JSON_FILE):
         try:
             with open(DHCP_JSON_FILE, "r") as f:
@@ -567,7 +581,12 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
     try:
         import json
         with open(DHCP_JSON_FILE, "w") as f:
-            json.dump({"start_ip": config.start_ip, "end_ip": config.end_ip, "dns_ip": config.dns_ip}, f)
+            json.dump({
+                "start_ip": config.start_ip, 
+                "end_ip": config.end_ip, 
+                "dns_ip": config.dns_ip,
+                "enable_dns": config.enable_dns
+            }, f)
 
         lines = []
         if os.path.exists(DNSMASQ_CONF):
@@ -619,7 +638,33 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
         with open(DNSMASQ_CONF, "w") as f:
             f.writelines(new_lines)
             
-        # Restart container automatically
+        # --- Handle ENABLE_DNS toggle in docker-compose.dhcp.yml ---
+        compose_file = os.path.join(os.getenv("APP_DIR", "/app"), "docker-compose.dhcp.yml")
+        if os.path.exists(compose_file):
+            try:
+                with open(compose_file, "r") as f:
+                    compose_content = f.read()
+                
+                env_val = "true" if config.enable_dns else "false"
+                # Regex replace ENABLE_DNS string
+                new_compose_content = re.sub(
+                    r'ENABLE_DNS=\s*(true|false)', 
+                    f'ENABLE_DNS={env_val}', 
+                    compose_content,
+                    flags=re.IGNORECASE
+                )
+                
+                with open(compose_file, "w") as f:
+                    f.write(new_compose_content)
+                
+                subprocess.run(
+                    ["docker", "compose", "-f", "docker-compose.yml", "-f", "docker-compose.dhcp.yml", "up", "-d", "dhcp-server"], 
+                    cwd=os.getenv("APP_DIR", "/app"), capture_output=True, check=False
+                )
+            except Exception as e:
+                print(f"Error updating docker-compose ENABLE_DNS env variable: {e}")
+                
+        # Restart container automatically if simple file reload
         res = subprocess.run(["docker", "start", "pxe-dhcp"], capture_output=True, check=False)
         if res.returncode != 0:
              # Container likely doesn't exist, try recreating using raw docker run with dynamically mapped host directory
