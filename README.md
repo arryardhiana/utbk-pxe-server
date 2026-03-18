@@ -56,6 +56,8 @@ Jika Anda ingin UTBK PXE Server juga bertindak sebagai DHCP Server (untuk member
 
 ## 🛠️ Penggunaan DHCP & DNS
 
+![DHCP& DNS Preview](assets/dhcp-dns.png)
+
 Jika Anda menjalankan **DHCP Server** (`docker-compose.dhcp.yml`), Anda dapat mengatur parameter berikut melalui tab **DHCP Server** di dashboard:
 1. **DHCP Range**: Tentukan rentang IP Start dan IP End untuk client.
 2. **CBT Server Destination**: Secara otomatis memetakan hostname `cbtsrv.snpmb.id` ke IP yang Anda tentukan (Sangat berguna untuk simulasi/lokal).
