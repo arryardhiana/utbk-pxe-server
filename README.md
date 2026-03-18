@@ -24,14 +24,14 @@ curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER
    git clone https://github.com/arryardhiana/utbk-pxe-server.git
    cd utbk-pxe-server
    
-   # Jalankan Orchestrator (Bawaan Tanpa Netdata)
+   # Jalankan Orchestrator & Monitoring (Netdata)
    docker compose up -d --build
    ```
 
-### 3. Monitoring Opsional (Netdata):
-Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
+### 3. Jalankan DHCP Server (Opsional):
+Jika Anda ingin UTBK PXE Server juga bertindak sebagai DHCP Server (untuk memberikan IP otomatis ke client), jalankan perintah ini:
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
+   docker compose -f docker-compose.yml -f docker-compose.dhcp.yml up -d
    ```
 
 ![Netdata Preview 1](assets/netdata-dash.png)
@@ -39,12 +39,14 @@ Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
 
 4. **Akses Dashboard**:
    - **Main Dashboard**: `http://ip-server:8000`
-   - **Netdata Monitoring**: `http://ip-server:19999` (Hanya jika monitoring aktif)
+   - **Netdata Monitoring**: `http://ip-server:19999`
 
 ---
 
 ## ✨ Fitur Utama
 
+- **Built-in DHCP Server**: Sistem manajemen DHCP yang terintegrasi (via dnsmasq) dengan deteksi interface jaringan otomatis.
+- **Smart DNS Control**: Fitur untuk mengaktifkan/menonaktifkan DNS resolver langsung dari dashboard web (Toggle ENABLE_DNS).
 - **Built-in Monitoring**: Pantau statistik client (Min/Max) dan kecepatan network (Real-time & 6h history) langsung di dashboard utama tanpa database.
 - **Optional Netdata**: Monitoring mendalam tingkat OS yang dapat diaktifkan melalui port `19999`.
 - **High Performance**: Penyajian file sistem langsung dari RAM (tmpfs) untuk mempercepat proses loading client.
@@ -52,7 +54,18 @@ Jika Anda membutuhkan monitoring sistem yang mendalam, jalankan perintah ini:
 
 ---
 
-## 🛰️ Contoh Konfigurasi MikroTik (DHCP Server)
+## 🛠️ Penggunaan DHCP & DNS
+
+![DHCP& DNS Preview](assets/dhcp-dns.png)
+
+Jika Anda menjalankan **DHCP Server** (`docker-compose.dhcp.yml`), Anda dapat mengatur parameter berikut melalui tab **DHCP Server** di dashboard:
+1. **DHCP Range**: Tentukan rentang IP Start dan IP End untuk client.
+2. **CBT Server Destination**: Secara otomatis memetakan hostname `cbtsrv.snpmb.id` ke IP yang Anda tentukan (Sangat berguna untuk simulasi/lokal).
+3. **Enable DNS Service**: Sakelar (Toggle) untuk mengaktifkan fitur DNS pada port 53. Jika dimatikan, service hanya menjalankan fungsi DHCP (Port 67) saja.
+
+---
+
+## 🛰️ Contoh Konfigurasi MikroTik (External DHCP)
 
 Agar client dapat booting melalui server ini, Anda perlu mengatur DHCP Options pada router anda.
 

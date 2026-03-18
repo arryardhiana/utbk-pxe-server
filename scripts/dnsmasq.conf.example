@@ -1,0 +1,5 @@
+dhcp-option=66,192.168.1.10
+dhcp-option=67,bootx64.efi
+log-dhcp
+dhcp-range=192.168.22.10,192.168.22.25,12h
+address=/cbtsrv.snpmb.id/192.168.22.22
