@@ -1,6 +1,7 @@
 # Local storage and configurations
 data-source/
 scripts/dhcp.json
+scripts/dnsmasq.conf
 tftpboot/*.ipxe
 tftpboot/*.efi
 tftpboot/*.img
@@ -25,5 +26,5 @@ Thumbs.db
 
 # Docker logs
 *.log
-backend/app/__pycache__/main.cpython-311.pyc
+backend/app/__pycache__/*
 dnsmasq.conf

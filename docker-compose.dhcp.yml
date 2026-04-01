@@ -1,6 +1,9 @@
 services:
   dhcp-server:
-    image: alpine:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.dhcp
+    image: pxe-dhcp-image:latest
     container_name: pxe-dhcp
     network_mode: host
     restart: "no"
@@ -9,6 +12,4 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./scripts/dnsmasq.conf.example:/etc/dnsmasq.conf.template:ro
-      - ./scripts/dhcp-entrypoint.sh:/dhcp-entrypoint.sh:ro
-    command: /bin/sh /dhcp-entrypoint.sh
+      - ./scripts:/scripts:ro

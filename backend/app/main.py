@@ -428,10 +428,23 @@ async def factory_reset(token: str = Depends(verify_token)):
             print(f"Failed to clear nginx logs: {e}")
             
         try:
-            # Enforce DHCP stop on reset
+            # Enforce DHCP stop and remove on reset
             subprocess.run(["docker", "stop", "pxe-dhcp"], capture_output=True, check=False)
-        except:
-            pass
+            subprocess.run(["docker", "rm", "-f", "pxe-dhcp"], capture_output=True, check=False)
+            # Remove DHCP config so UI shows 'Not Configured' after reset
+            if os.path.exists(DHCP_JSON_FILE):
+                os.remove(DHCP_JSON_FILE)
+            # Reset dnsmasq.conf to defaults to avoid leftover range logic errors
+            if os.path.exists(DNSMASQ_CONF):
+                with open(DNSMASQ_CONF, "w") as f:
+                    f.writelines([
+                        "dhcp-option=66,127.0.0.1\n",
+                        "dhcp-option=67,bootx64.efi\n",
+                        "log-dhcp\n",
+                        "bind-interfaces\n"
+                    ])
+        except Exception as e:
+            print(f"DHCP reset warning: {e}")
             
         return {"status": "success", "message": "Full system wipe complete. All folders and logs cleared."}
     except Exception as e:
@@ -604,6 +617,7 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
         current_ip = get_config().get("server_ip", "127.0.0.1")
         has_listen = False
         has_bind = False
+        has_tftp_ip = False
 
         # Update or add attributes
         new_lines = []
@@ -623,6 +637,9 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
             elif line.strip() == "bind-interfaces":
                 new_lines.append(line)
                 has_bind = True
+            elif line.startswith("dhcp-option=66,"):
+                new_lines.append(f"dhcp-option=66,{current_ip}\n")
+                has_tftp_ip = True
             else:
                 new_lines.append(line)
                 
@@ -634,6 +651,8 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
             new_lines.append(f"listen-address={current_ip}\n")
         if not has_bind:
             new_lines.append("bind-interfaces\n")
+        if not has_tftp_ip:
+            new_lines.append(f"dhcp-option=66,{current_ip}\n")
              
         with open(DNSMASQ_CONF, "w") as f:
             f.writelines(new_lines)
@@ -678,19 +697,19 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
                          host_scripts_dir = m["Source"]
                          break
                  
-                 if host_scripts_dir:
-                     dnsmasq_conf_host = f"{host_scripts_dir}/dnsmasq.conf"
-                     subprocess.run([
-                         "docker", "run", "-d",
-                         "--name", "pxe-dhcp",
-                         "--network", "host",
-                         "--cap-add", "NET_ADMIN",
-                         "-v", f"{dnsmasq_conf_host}:/etc/dnsmasq.conf:ro",
-                         "alpine:latest",
-                         "/bin/sh", "-c", "apk add --no-cache dnsmasq && dnsmasq -k"
-                     ], capture_output=True, check=False)
+                     if host_scripts_dir:
+                         # Remove stopped container if it exists before creating new one
+                         subprocess.run(["docker", "rm", "-f", "pxe-dhcp"], capture_output=True, check=False)
+                         subprocess.run([
+                             "docker", "run", "-d",
+                             "--name", "pxe-dhcp",
+                             "--network", "host",
+                             "--cap-add", "NET_ADMIN",
+                             "-v", f"{host_scripts_dir}:/scripts:ro",
+                             "pxe-dhcp-image:latest"
+                         ], capture_output=True, check=False)
                          
-             print(f"Warning: Failed to start pxe-dhcp directly. Fallback triggered.")
+             print(f"Warning: Failed to start pxe-dhcp. Container created via fallback.")
         subprocess.run(["docker", "restart", "pxe-dhcp"], capture_output=True, check=False)
         
         return {"status": "success", "message": "DHCP configuration saved and service started."}
@@ -707,7 +726,6 @@ async def get_dhcp_status(token: str = Depends(verify_token)):
         res = subprocess.run(["docker", "inspect", "-f", "{{.State.Status}}", "pxe-dhcp"], capture_output=True, text=True)
         if res.returncode == 0:
             return {"status": res.stdout.strip()}
-        return {"status": "not_found"}
         return {"status": "not_found"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
