@@ -434,6 +434,15 @@ async def factory_reset(token: str = Depends(verify_token)):
             # Remove DHCP config so UI shows 'Not Configured' after reset
             if os.path.exists(DHCP_JSON_FILE):
                 os.remove(DHCP_JSON_FILE)
+            # Reset dnsmasq.conf to defaults to avoid leftover range logic errors
+            if os.path.exists(DNSMASQ_CONF):
+                with open(DNSMASQ_CONF, "w") as f:
+                    f.writelines([
+                        "dhcp-option=66,127.0.0.1\n",
+                        "dhcp-option=67,bootx64.efi\n",
+                        "log-dhcp\n",
+                        "bind-interfaces\n"
+                    ])
         except Exception as e:
             print(f"DHCP reset warning: {e}")
             
@@ -698,8 +707,7 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
                          "--network", "host",
                          "--cap-add", "NET_ADMIN",
                          "-v", f"{dnsmasq_conf_host}:/etc/dnsmasq.conf:ro",
-                         "alpine:latest",
-                         "/bin/sh", "-c", "apk add --no-cache dnsmasq && dnsmasq -k"
+                         "pxe-dhcp-image:latest"
                      ], capture_output=True, check=False)
                          
              print(f"Warning: Failed to start pxe-dhcp. Container created via fallback.")
