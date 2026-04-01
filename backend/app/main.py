@@ -697,18 +697,17 @@ async def save_dhcp_config(config: DHCPConfig, token: str = Depends(verify_token
                          host_scripts_dir = m["Source"]
                          break
                  
-                 if host_scripts_dir:
-                     dnsmasq_conf_host = f"{host_scripts_dir}/dnsmasq.conf"
-                     # Remove stopped container if it exists before creating new one
-                     subprocess.run(["docker", "rm", "-f", "pxe-dhcp"], capture_output=True, check=False)
-                     subprocess.run([
-                         "docker", "run", "-d",
-                         "--name", "pxe-dhcp",
-                         "--network", "host",
-                         "--cap-add", "NET_ADMIN",
-                         "-v", f"{dnsmasq_conf_host}:/etc/dnsmasq.conf:ro",
-                         "pxe-dhcp-image:latest"
-                     ], capture_output=True, check=False)
+                     if host_scripts_dir:
+                         # Remove stopped container if it exists before creating new one
+                         subprocess.run(["docker", "rm", "-f", "pxe-dhcp"], capture_output=True, check=False)
+                         subprocess.run([
+                             "docker", "run", "-d",
+                             "--name", "pxe-dhcp",
+                             "--network", "host",
+                             "--cap-add", "NET_ADMIN",
+                             "-v", f"{host_scripts_dir}:/scripts:ro",
+                             "pxe-dhcp-image:latest"
+                         ], capture_output=True, check=False)
                          
              print(f"Warning: Failed to start pxe-dhcp. Container created via fallback.")
         subprocess.run(["docker", "restart", "pxe-dhcp"], capture_output=True, check=False)

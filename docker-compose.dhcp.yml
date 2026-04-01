@@ -12,4 +12,4 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./scripts/dnsmasq.conf:/etc/dnsmasq.conf:ro
+      - ./scripts:/scripts:ro

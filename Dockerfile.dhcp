@@ -1,3 +1,3 @@
 FROM alpine:latest
 RUN apk add --no-cache dnsmasq
-ENTRYPOINT ["dnsmasq", "-d", "-q"]
+ENTRYPOINT ["sh", "-c", "if [ -f /scripts/dnsmasq.conf ]; then exec dnsmasq -d -q -C /scripts/dnsmasq.conf; else echo 'Waiting for DHCP config...'; while true; do sleep 60; done; fi"]
